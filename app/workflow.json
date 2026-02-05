@@ -1,0 +1,152 @@
+{
+  "name": "Upload Generated Proposal to SharePoint",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "556fd7ca-ef28-4d00-b98e-9271b07a7bad",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -160,
+        160
+      ],
+      "id": "421833f7-3f12-4f76-b2d8-bde7b7559de9",
+      "name": "Webhook",
+      "webhookId": "556fd7ca-ef28-4d00-b98e-9271b07a7bad"
+    },
+    {
+      "parameters": {
+        "functionCode": "// Get filename from webhook\nconst webhookData = $input.first().json;\nconst filename = webhookData.filename || webhookData.body?.filename || webhookData.stdout?.trim();\nconst clientFolder = webhookData.clientFolder || webhookData.body?.clientFolder;\n\nif (!filename) {\n  throw new Error('No filename provided in webhook data');\n}\n\n// Build absolute path\nconst base = '/root/Proposal_Generator-dox-pdf/output';\nconst relativePath = clientFolder ? `${clientFolder}/${filename}` : filename;\nconst fullPath = `${base}/${relativePath}`;\n\nreturn [{\n  json: {\n    filename: filename,\n    path: fullPath\n  }\n}];"
+      },
+      "id": "3770a5d4-5f4f-4093-93f4-12c2030e6ff0",
+      "name": "Build File Path",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        48,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "filePath": "={{ $json.path }}"
+      },
+      "id": "893406ca-eec3-4232-8557-2b4c6d46d37a",
+      "name": "Read Generated File",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        256,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "site": {
+          "__rl": true,
+          "value": "exposeprofi.sharepoint.com,06bf948f-b86d-4e3a-861f-5d09c3c18034,79725fd7-bd81-426a-b070-2b1172d4b30f",
+          "mode": "list",
+          "cachedResultName": "Exposeprofi"
+        },
+        "folder": {
+          "__rl": true,
+          "value": "012WGS7KFILSUHZ6X7L5EZGMS6Q7EHETEI",
+          "mode": "list",
+          "cachedResultName": "Proposal_Generation"
+        },
+        "fileName": "={{ $json.filename }}",
+        "fileContents": "data",
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.microsoftSharePoint",
+      "typeVersion": 1,
+      "position": [
+        688,
+        160
+      ],
+      "id": "49e46f1f-7c30-4b2e-9104-12ddec2967f5",
+      "name": "Upload to SharePoint",
+      "credentials": {
+        "microsoftSharePointOAuth2Api": {
+          "id": "pYk4nIQJEeJoNVQ4",
+          "name": "Microsoft SharePoint account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code Node for SharePoint Directory Parsing\n// This node helps parse SharePoint file information from uploaded files\n\n// Extract SharePoint site and folder information\nconst sharepointUrl = 'https://exposeprofi-my.sharepoint.com';\nconst userPath = '/personal/stephan_foertsch_exposeprofi_de';\nconst folderPath = '/Documents/Immo Zeichnungen/Rechnungen und Angebote/10340_WeberHaus (Frank Jaskorski)/1_Privates Urlaubshaus Frank Jaskorski';\n\n// Process incoming items (files uploaded via n8n)\nconst items = $input.all();\nconst processedItems = [];\n\nfor (const item of items) {\n  const data = item.json;\n  \n  // Extract file information\n  const fileInfo = {\n    // Basic file details\n    fileName: data.name || data.fileName || 'unknown',\n    fileSize: data.size || data.fileSize || 0,\n    mimeType: data.mimeType || data.contentType || 'application/octet-stream',\n    \n    // SharePoint context\n    sharepointSite: sharepointUrl,\n    userPath: userPath,\n    folderPath: folderPath,\n    fullPath: `${sharepointUrl}${userPath}${folderPath}`,\n    \n    // Timestamps\n    uploadedAt: new Date().toISOString(),\n    modifiedAt: data.lastModifiedDateTime || data.modifiedAt || new Date().toISOString(),\n    \n    // Binary data reference (if available)\n    hasBinaryData: !!data.binary || !!item.binary,\n    binaryPropertyName: data.binary ? Object.keys(data.binary)[0] : null,\n    \n    // Additional metadata\n    metadata: {\n      projectCode: '10340',\n      projectName: 'WeberHaus (Frank Jaskorski)',\n      subFolder: '1_Privates Urlaubshaus Frank Jaskorski',\n      category: 'Rechnungen und Angebote'\n    }\n  };\n  \n  // Extract file extension\n  if (fileInfo.fileName.includes('.')) {\n    fileInfo.fileExtension = fileInfo.fileName.split('.').pop().toLowerCase();\n  }\n  \n  // Categorize file type\n  if (fileInfo.mimeType.includes('pdf')) {\n    fileInfo.fileCategory = 'PDF Document';\n  } else if (fileInfo.mimeType.includes('image')) {\n    fileInfo.fileCategory = 'Image';\n  } else if (fileInfo.mimeType.includes('spreadsheet') || fileInfo.mimeType.includes('excel')) {\n    fileInfo.fileCategory = 'Spreadsheet';\n  } else if (fileInfo.mimeType.includes('word') || fileInfo.mimeType.includes('document')) {\n    fileInfo.fileCategory = 'Word Document';\n  } else {\n    fileInfo.fileCategory = 'Other';\n  }\n  \n  // Generate SharePoint direct link format (may need authentication)\n  fileInfo.directLink = `${sharepointUrl}${userPath}/_layouts/15/Doc.aspx?sourcedoc={id}&file=${encodeURIComponent(fileInfo.fileName)}`;\n  \n  processedItems.push({\n    json: fileInfo,\n    binary: item.binary // Preserve binary data if present\n  });\n}\n\nreturn processedItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        160
+      ],
+      "id": "aee4da12-6e91-45cb-acf0-0769d02132fb",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build File Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build File Path": {
+      "main": [
+        [
+          {
+            "node": "Read Generated File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Generated File": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Upload to SharePoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4afb847b-93f4-4bc3-adf2-b7a5a5636db3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f6f3efcb2394b456105829877cc7d77526d26fb46273064b38233e0c937d9f43"
+  },
+  "id": "LjtkpPJVYrpSoaV6",
+  "tags": []
+}
