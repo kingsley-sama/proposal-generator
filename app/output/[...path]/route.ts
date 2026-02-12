@@ -24,11 +24,14 @@ export async function GET(
   if (filePath.endsWith('.pdf')) contentType = 'application/pdf';
   if (filePath.endsWith('.png')) contentType = 'image/png';
   
+  const fileName = path.basename(filePath);
+  const safeFileName = fileName.replace(/[^\w\s.-]/g, '_');
+  
   return new NextResponse(fileBuffer, {
     headers: {
       'Content-Type': contentType,
       'Content-Length': fileStats.size.toString(),
-      'Content-Disposition': `attachment; filename="${path.basename(filePath)}"`
+      'Content-Disposition': `attachment; filename="${safeFileName}"; filename*=UTF-8''${encodeURIComponent(fileName)}`
     },
   });
 }

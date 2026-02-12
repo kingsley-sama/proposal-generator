@@ -240,11 +240,13 @@ export async function POST(request: Request) {
         console.error('Webhook error', e);
     }
     
+    const encodedFileUrl = `/output/${encodeURIComponent(clientFolderName)}/${encodeURIComponent(filename)}`;
+
     return NextResponse.json({
       success: true,
       message: 'Proposal generated successfully',
       filename: `${clientFolderName}/${filename}`,
-      fileUrl: `/output/${clientFolderName}/${filename}`, // This will need a route
+      fileUrl: encodedFileUrl,
       filePath: outputPath,
       clientFolder: clientFolderName,
       offerNumber: generatedOfferNumber,

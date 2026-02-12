@@ -532,7 +532,13 @@ export default function PreviewPage() {
         alert(`✅ Angebot erfolgreich erstellt!\n\nAngebotsnummer: ${result.offerNumber}\nKunde: ${result.clientName}\nGesamt: ${result.totalAmount} €`);
         
         if (result.fileUrl) {
-          window.open(result.fileUrl, '_blank');
+          // Use a hidden link to trigger download instead of window.open
+          const a = document.createElement('a');
+          a.href = result.fileUrl;
+          a.download = result.filename?.split('/').pop() || 'Angebot.docx';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
         }
       } else {
         throw new Error(result.error || 'Failed to generate proposal');
