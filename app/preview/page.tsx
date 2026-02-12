@@ -111,7 +111,7 @@ export default function PreviewPage() {
     }
 
     if (!dataStr) {
-      showNotification('No proposal data found. Please fill out the form first.', 'error');
+      showNotification('Keine Angebotsdaten gefunden. Bitte füllen Sie zuerst das Formular aus.', 'error');
       router.push('/');
       return;
     }
@@ -141,6 +141,32 @@ export default function PreviewPage() {
         if (!service.pricingTiers) {
           if (serviceInfo && serviceInfo.pricingTiers) {
             service.pricingTiers = JSON.parse(JSON.stringify(serviceInfo.pricingTiers));
+          }
+        }
+        // Dynamic pricing tiers for exterior-ground based on building type
+        if (service.name === '3D-Außenvisualisierung Bodenperspektive') {
+          const buildingType = data.projectInfo?.projectType;
+          if (buildingType) {
+            const fmt = (p: number) => p.toFixed(2).replace('.', ',');
+            const priceMatrix: Record<string, number[]> = {
+              'EFH': [499, 349, 299, 229, 199],
+              'DHH': [599, 399, 359, 329, 299],
+              'MFH-3-5': [599, 399, 359, 329, 299],
+              'MFH-6-10': [699, 499, 399, 349, 329],
+              'MFH-11-15': [799, 599, 499, 399, 349]
+            };
+            const prices = priceMatrix[buildingType];
+            if (prices) {
+              service.pricingTiers = [
+                { quantity: 1, price: prices[0], label: `1 Ansicht Netto: ${fmt(prices[0])} €` },
+                { quantity: 2, price: prices[1], label: `2 Ansichten: Netto pro Ansicht: ${fmt(prices[1])} €` },
+                { quantity: 3, price: prices[2], label: `3 Ansichten: Netto pro Ansicht: ${fmt(prices[2])} €` },
+                { quantity: 4, price: prices[3], label: `4 Ansichten: Netto pro Ansicht: ${fmt(prices[3])} €` },
+                { quantity: 5, price: prices[4], label: `≥5 Ansichten: Netto pro Ansicht: ${fmt(prices[4])} €` },
+              ];
+            }
+          } else {
+            service.pricingTiers = [];
           }
         }
         // Add link if not present
@@ -286,7 +312,7 @@ export default function PreviewPage() {
     
     const parsed = parseBulletText(bulletInputText);
     if (parsed.length === 0) {
-      showNotification('Please enter at least one bullet point', 'error');
+      showNotification('Bitte mindestens einen Aufzählungspunkt eingeben', 'error');
       return;
     }
 
@@ -311,7 +337,7 @@ export default function PreviewPage() {
 
   const addSubBullet = (serviceIndex: number, bulletPath: string, currentLevel: number) => {
     if (currentLevel >= 3) {
-      showNotification('Maximum nesting level (3) reached. Cannot add more sub-bullets.', 'error');
+      showNotification('Maximale Verschachtelungstiefe (3) erreicht.', 'error');
       return;
     }
     if (!proposalData) return;
@@ -371,7 +397,7 @@ export default function PreviewPage() {
   };
 
   const deleteBulletPoint = (serviceIndex: number, bulletPath: string) => {
-    if (!confirm('Delete this bullet point?')) return;
+    if (!confirm('Diesen Aufzählungspunkt löschen?')) return;
     if (!proposalData) return;
     
     const newServices = [...proposalData.services];
@@ -503,7 +529,7 @@ export default function PreviewPage() {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        alert(`✅ Proposal generated successfully!\n\nOffer Number: ${result.offerNumber}\nClient: ${result.clientName}\nTotal: ${result.totalAmount} €`);
+        alert(`✅ Angebot erfolgreich erstellt!\n\nAngebotsnummer: ${result.offerNumber}\nKunde: ${result.clientName}\nGesamt: ${result.totalAmount} €`);
         
         if (result.fileUrl) {
           window.open(result.fileUrl, '_blank');
@@ -513,7 +539,7 @@ export default function PreviewPage() {
       }
     } catch (error: any) {
       console.error('Error:', error);
-      alert(`❌ Error generating proposal:\n${error.message}\n\nMake sure the server is running.`);
+      alert(`❌ Fehler beim Erstellen des Angebots:\n${error.message}\n\nStellen Sie sicher, dass der Server läuft.`);
     } finally {
       setIsGenerating(false);
     }
@@ -569,12 +595,15 @@ export default function PreviewPage() {
   if (!proposalData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-gray-700 text-lg italic">Loading proposal data...</div>
+        <div className="text-gray-700 text-lg italic">Angebotsdaten werden geladen...</div>
       </div>
     );
   }
 
   const offerNumber = `2026-${proposalData.projectInfo.MM}-${proposalData.projectInfo.DD}-8`;
+
+  // Determine if virtual tour is included (for conditional footnote text)
+  const hasVirtualTour = proposalData.services?.some((s: any) => s.name?.includes('360° Tour'));
 
   // Recursive bullet renderer component (Display Only)
   const BulletItem = ({ item, level }: any) => {
@@ -606,20 +635,20 @@ export default function PreviewPage() {
     <div className="min-h-screen bg-gray-100 flex flex-col items-center">
       {/* Preview Toolbar */}
       <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-4 flex justify-between items-center shadow-lg z-50">
-        <h1 className="text-white text-xl font-semibold">📄 Proposal Preview</h1>
+        <h1 className="text-white text-xl font-semibold">📄 Angebotsvorschau</h1>
         <div className="flex gap-3">
           <button
             onClick={() => router.push('/')}
             className="px-6 py-2.5 bg-white/20 text-white rounded-md text-sm font-semibold hover:bg-white/30 transition-colors"
           >
-            ← Back to Form
+            ← Zurück zum Formular
           </button>
           <button
             onClick={handleGenerateProposal}
             disabled={isGenerating}
             className="px-6 py-2.5 bg-green-500 text-white rounded-md text-sm font-semibold hover:bg-green-600 hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:bg-gray-600 disabled:cursor-not-allowed disabled:transform-none"
           >
-            {isGenerating ? '⏳ Generating...' : '📄 Generate DOCX'}
+            {isGenerating ? '⏳ Wird erstellt...' : '📄 DOCX erstellen'}
           </button>
         </div>
       </div>
@@ -627,7 +656,7 @@ export default function PreviewPage() {
       {/* Content Area */}
       <div className="pt-20 pb-10 px-0 w-[210mm] max-w-full">
         <div className="text-xs text-gray-600 italic mb-4 text-center">
-          💡 Click on any text to edit it. Changes are saved automatically.
+          💡 Klicken Sie auf einen Text, um ihn zu bearbeiten. Änderungen werden automatisch gespeichert.
         </div>
         {/* Page 1: Cover */}
         <div className="w-full min-h-[1122px] bg-white shadow-lg border border-gray-300 p-24 mb-10 flex flex-col relative">
@@ -704,7 +733,7 @@ export default function PreviewPage() {
             <table className="w-full border-collapse mb-6 text-[9pt] table-fixed">
               <thead>
                 <tr>
-                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[8%]">Anzahl</th>
+                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[8%]">Anz.</th>
                   <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[22%]">Bezeichnung</th>
                   <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[55%]">Beschreibung</th>
                   <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[15%]">Stückpreis netto</th>
@@ -763,20 +792,20 @@ export default function PreviewPage() {
                                             onChange={(e) => setBulkEditText(e.target.value)}
                                             className="w-full h-[300px] p-2 text-xs font-mono border border-blue-500 rounded bg-white shadow-lg z-10 text-gray-900"
                                             autoFocus
-                                            placeholder="- Main point&#10;-- Sub point&#10;--- Sub-sub point"
+                                            placeholder="- Hauptpunkt&#10;-- Unterpunkt&#10;--- Unter-Unterpunkt"
                                         />
                                         <div className="flex gap-2">
                                             <button 
                                                 onClick={saveBulkEdit} 
                                                 className="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-green-600"
                                             >
-                                                Save Changes
+                                                Speichern
                                             </button>
                                             <button 
                                                 onClick={() => setEditingServiceIndex(null)} 
                                                 className="bg-gray-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-gray-600"
                                             >
-                                                Cancel
+                                                Abbrechen
                                             </button>
                                         </div>
                                     </div>
@@ -789,7 +818,7 @@ export default function PreviewPage() {
                                     className="text-gray-400 italic cursor-pointer hover:text-gray-600"
                                     onClick={() => startBulkEdit(index, [])}
                                 >
-                                    No description. Click to add.
+                                    Keine Beschreibung. Klicken zum Hinzufügen.
                                 </span>
                               );
                             }
@@ -800,10 +829,10 @@ export default function PreviewPage() {
                                     startBulkEdit(index, descriptions);
                                 }}
                                 className="cursor-pointer hover:bg-yellow-50 p-1 -m-1 rounded transition-colors relative group"
-                                title="Click to edit full description"
+                                title="Klicken zum Bearbeiten der Beschreibung"
                               >
                                 <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 bg-blue-100 text-blue-800 text-[9px] px-1 rounded border border-blue-200 pointer-events-none z-10">
-                                    ✎ Edit Text
+                                    ✎ Text bearbeiten
                                 </div>
                                 <ul className="list-disc ml-3.5 my-1 pointer-events-none">
                                   {descriptions.map((desc: any, i: number) => (
@@ -818,6 +847,14 @@ export default function PreviewPage() {
                                       onAddSub={() => {}}
                                     />
                                   ))}
+                                  {service.link && (
+                                    <li className="mb-0.5 leading-tight">
+                                      <span className="px-0.5 inline">
+                                        <strong>Referenzen: </strong>
+                                        <a href={service.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline pointer-events-auto">KLICK</a>
+                                      </span>
+                                    </li>
+                                  )}
                                 </ul>
                               </div>
                             );
@@ -842,7 +879,7 @@ export default function PreviewPage() {
                     );
 
                     // Add pricing tiers if available
-                    if (serviceInfo && serviceInfo.pricingTiers) {
+                    if (service.pricingTiers && service.pricingTiers.length > 0) {
                       // Title row
                       rows.push(
                         <tr key={`tier-title-${index}`} className="bg-gray-50">
@@ -856,7 +893,7 @@ export default function PreviewPage() {
                       );
                       
                       // Tier rows
-                      serviceInfo.pricingTiers.forEach((tier: any, tierIndex: number) => {
+                      service.pricingTiers.forEach((tier: any, tierIndex: number) => {
                         rows.push(
                           <tr key={`tier-${index}-${tierIndex}`} className="bg-gray-50">
                             <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
@@ -876,7 +913,7 @@ export default function PreviewPage() {
               </tbody>
             </table>
             <div className="text-[8.5pt] text-gray-600 italic mt-2">
-              💡 Click on quantities, names, descriptions, or prices to edit them
+              💡 Klicken Sie auf Mengen, Namen, Beschreibungen oder Preise, um sie zu bearbeiten
             </div>
           </div>
 
@@ -888,7 +925,7 @@ export default function PreviewPage() {
         {proposalData.images && proposalData.images.length > 0 && (
           <div className="w-full min-h-[1122px] bg-white shadow-lg border border-gray-300 p-24 mb-10 flex flex-col relative">
             <div className="flex-1 pb-24">
-              <div className="font-bold mb-2 text-[11pt] text-gray-900">Empfohlene Perspektiven Außen:</div>
+              <div className="font-bold mb-2 text-[11pt] text-gray-900">Perspektivbilder</div>
               {proposalData.images.map((image: any, index: number) => (
                 <div key={index} className="mb-8">
                   {image.title && (
@@ -1095,7 +1132,7 @@ export default function PreviewPage() {
 
             {/* Delivery and Terms */}
             <div className="mb-5 text-gray-900">
-              <p>
+              <p className="mb-2">
                 <strong>Lieferweg:</strong>{' '}
                 <span
                   contentEditable
@@ -1104,23 +1141,23 @@ export default function PreviewPage() {
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.deliveryMethod || 'Die Lieferung erfolgt digital via E-Mail oder Link nach vollständiger Zahlung und Erhalt aller notwendigen Unterlagen.'}
+                  {proposalData.terms?.deliveryMethod || 'Digital via Email'}
                 </span>
               </p>
-              <p>
-                <strong>Lieferzeit:</strong>{' '}
+              <p className="mb-2">
+                <strong>Voraussichtl. Leistungsdatum:</strong>{' '}
                 <span
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => {
-                    const newValue = e.currentTarget.textContent || '';
                     handleEditableBlur('projectInfo.deliveryTime', e);
                   }}
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
                 >
-                  {proposalData.projectInfo.deliveryTime || proposalData.projectInfo.deliveryDays || 'XXX Werktage'}
-                </span>{' '}
+                  {proposalData.projectInfo.deliveryTime || '4-6'}
+                </span>
+                {' Arbeitstage '}
                 <span
                   contentEditable
                   suppressContentEditableWarning
@@ -1128,7 +1165,17 @@ export default function PreviewPage() {
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.deliveryDaysText || 'Werktage ab Beauftragung und Erhalt der Unterlagen'}
+                  {proposalData.terms?.deliveryDaysText || (() => {
+                    const netStr = proposalData.pricing?.totalNetPrice || '0';
+                    const netNum = parseFloat(netStr.replace(/\./g, '').replace(',', '.')) || 0;
+                    if (netNum > 2000) {
+                      const grossStr = proposalData.pricing?.totalGrossPrice || '0';
+                      const grossNum = parseFloat(grossStr.replace(/\./g, '').replace(',', '.')) || 0;
+                      const halfAmount = (grossNum * 0.5).toFixed(2).replace('.', ',');
+                      return `nach Eingang der Anzahlung i.H.v. 50% des Bruttopreises (${halfAmount} EUR) und Erhalt aller Unterlagen und Informationen`;
+                    }
+                    return 'nach Auftragseingang und Erhalt aller Unterlagen und Informationen';
+                  })()}
                 </span>
               </p>
             </div>
@@ -1143,7 +1190,18 @@ export default function PreviewPage() {
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.paymentTerms || '50% Anzahlung, Rest nach Lieferung - innerhalb 14 Tage netto'}
+                  {proposalData.terms?.paymentTerms || (() => {
+                    const netStr = proposalData.pricing?.totalNetPrice || '0';
+                    const netNum = parseFloat(netStr.replace(/\./g, '').replace(',', '.')) || 0;
+                    if (netNum > 2000) {
+                      const grossStr = proposalData.pricing?.totalGrossPrice || '0';
+                      const grossNum = parseFloat(grossStr.replace(/\./g, '').replace(',', '.')) || 0;
+                      const advance = (grossNum * 0.5).toFixed(2).replace('.', ',');
+                      const remaining = (grossNum - grossNum * 0.5).toFixed(2).replace('.', ',');
+                      return `Anzahlung i.H.v. 50% (${advance} €) bei Beauftragung, Restzahlung (${remaining} €) nach Lieferung – zahlbar innerhalb 14 Tagen netto`;
+                    }
+                    return 'Zahlung nach Lieferung – zahlbar innerhalb 14 Tagen netto';
+                  })()}
                 </span>
               </p>
             </div>
@@ -1174,57 +1232,32 @@ export default function PreviewPage() {
             <div className="text-[8.5pt] mt-4 leading-normal text-gray-900">
               <p><strong>Hinweise:</strong></p>
               <p>
-                • <span
+                ⁽¹⁾ <span
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.note1', e)}
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.note1 || 'Alle Preise verstehen sich in Euro zzgl. der gesetzlichen Mehrwertsteuer.'}
+                  {proposalData.terms?.note1 || 'Sollten Sie dadurch eine weitere Revision benötigen, die nicht durch uns verschuldet wurde, führen wir diese zum Kostenlosen Grundpreis durch. Bei komplexeren Änderungswünschen, welche eine deutlich längere Bearbeitungszeit benötigen, behalten wir uns das Recht vor, 50% der ursprünglichen Leistung zu berechnen. Bei Hunderten von Projekten benötigen unsere Kunden im Schnitt unter 6% aller Fälle eine zweite Revision. 50% der ursprünglichen Leistung bedeutet bei einer Revision durchschnittlich 2-3 Arbeitstage.'}
                 </span>
               </p>
               <p>
-                • <span
+                ⁽²⁾ <span
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.note2', e)}
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.note2 || 'Die Lieferzeit beginnt nach Auftragsbestätigung und Zahlungseingang der Anzahlung.'}
-                </span>
-              </p>
-            </div>
-
-            <div className="mt-8 pt-5 border-t border-gray-300 text-[11px] leading-relaxed text-gray-900">
-              <p>
-                <strong>Korrekturschleifen:</strong>{' '}
-                <span
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => handleEditableBlur('terms.revisionPolicy', e)}
-                  onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
-                >
-                  {proposalData.terms?.revisionPolicy || 'Bis zu 2 Korrekturschleifen sind im Preis inbegriffen. Weitere Korrekturschleifen werden nach Aufwand berechnet.'}
-                </span>
-              </p>
-              <p>
-                <strong>Nutzungsrechte:</strong>{' '}
-                <span
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => handleEditableBlur('terms.usageRights', e)}
-                  onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
-                >
-                  {proposalData.terms?.usageRights || 'Mit vollständiger Bezahlung erhalten Sie die uneingeschränkten Nutzungsrechte an den gelieferten Visualisierungen.'}
+                  {proposalData.terms?.note2 || (hasVirtualTour
+                    ? 'Die Lieferzeit beginnt nach Auftragsbestätigung und Zahlungseingang der Anzahlung. Bei Bestellung eines virtuellen Rundgangs kann die Bereitstellung zusätzliche 3-5 Werktage in Anspruch nehmen.'
+                    : 'Die Lieferzeit beginnt nach Auftragsbestätigung und Zahlungseingang der Anzahlung.')}
                 </span>
               </p>
             </div>
             <div className="text-[8.5pt] text-gray-600 italic mt-4">
-              💡 Click on any price values to edit them
+              💡 Klicken Sie auf Preiswerte, um sie zu bearbeiten
             </div>
           </div>
 
@@ -1239,30 +1272,30 @@ export default function PreviewPage() {
           <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-800 to-slate-700">
-              <h3 className="text-xl font-semibold text-white">Add Bullet Points</h3>
+              <h3 className="text-xl font-semibold text-white">Aufzählungspunkte hinzufügen</h3>
             </div>
 
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto flex-1">
               <div className="mb-4">
                 <p className="text-sm text-gray-700 mb-2">
-                  Enter bullet points using the following syntax:
+                  Geben Sie die Aufzählungspunkte mit folgender Syntax ein:
                 </p>
                 <ul className="text-sm text-gray-600 space-y-1 mb-4">
-                  <li><code className="bg-gray-100 px-2 py-0.5 rounded">-</code> Main bullet point</li>
-                  <li><code className="bg-gray-100 px-2 py-0.5 rounded">--</code> Sub-bullet point (level 1)</li>
-                  <li><code className="bg-gray-100 px-2 py-0.5 rounded">---</code> Sub-sub-bullet point (level 2)</li>
-                  <li><code className="bg-gray-100 px-2 py-0.5 rounded">----</code> Level 3 (maximum depth)</li>
+                  <li><code className="bg-gray-100 px-2 py-0.5 rounded">-</code> Hauptpunkt</li>
+                  <li><code className="bg-gray-100 px-2 py-0.5 rounded">--</code> Unterpunkt (Ebene 1)</li>
+                  <li><code className="bg-gray-100 px-2 py-0.5 rounded">---</code> Unter-Unterpunkt (Ebene 2)</li>
+                  <li><code className="bg-gray-100 px-2 py-0.5 rounded">----</code> Ebene 3 (max. Tiefe)</li>
                 </ul>
                 <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm">
-                  <p className="font-semibold text-blue-900 mb-1">Example:</p>
+                  <p className="font-semibold text-blue-900 mb-1">Beispiel:</p>
                   <pre className="text-blue-800 font-mono text-xs whitespace-pre-wrap">
-{`- First main point
--- Sub-point of first
---- Sub-sub-point
--- Another sub-point
-- Second main point
--- Its sub-point`}
+{`- Erster Hauptpunkt
+-- Unterpunkt
+--- Unter-Unterpunkt
+-- Weiterer Unterpunkt
+- Zweiter Hauptpunkt
+-- Sein Unterpunkt`}
                   </pre>
                 </div>
               </div>
@@ -1270,11 +1303,11 @@ export default function PreviewPage() {
               <textarea
                 value={bulletInputText}
                 onChange={(e) => setBulletInputText(e.target.value)}
-                placeholder="- Enter your bullet points here&#10;-- Add sub-bullets with double dashes&#10;--- Add sub-sub-bullets with triple dashes"
+                placeholder="- Aufzählungspunkte hier eingeben&#10;-- Unterpunkte mit doppeltem Strich&#10;--- Unter-Unterpunkte mit dreifachem Strich"
                 className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono text-sm"
               />
               <p className="text-xs text-gray-500 mt-2">
-                💡 Tip: Each line will be a separate bullet point. Use dashes to indicate nesting level.
+                💡 Tipp: Jede Zeile wird ein eigener Aufzählungspunkt. Verwenden Sie Striche, um die Verschachtelungsebene anzugeben.
               </p>
             </div>
 
@@ -1288,13 +1321,13 @@ export default function PreviewPage() {
                 }}
                 className="px-5 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
               >
-                Cancel
+                Abbrechen
               </button>
               <button
                 onClick={handleAddBullets}
                 className="px-5 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
               >
-                Add Bullets
+                Hinzufügen
               </button>
             </div>
           </div>

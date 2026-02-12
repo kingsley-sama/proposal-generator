@@ -23,7 +23,7 @@ export function ImageUploadSection({ images, onImagesChange }: ImageUploadSectio
     onImagesChange([
       ...images,
       {
-        title: 'Recommended perspectives for exterior renderings',
+        title: '',
         description: '', // Description removed as per requirement
         fileName: '',
         fileSize: 0,
@@ -68,7 +68,7 @@ export function ImageUploadSection({ images, onImagesChange }: ImageUploadSectio
   return (
     <div className="mb-10 pb-8 border-b border-gray-200">
       <h2 className="text-xl font-semibold text-slate-800 mb-6">
-        🖼️ Perspective Images (Recommended Perspectives)
+        🖼️ Perspektivbilder
       </h2>
       <p className="text-xs text-gray-700 mb-5">
         Add images with titles and descriptions that will be included on the second-to-last page of the proposal.
@@ -97,7 +97,7 @@ export function ImageUploadSection({ images, onImagesChange }: ImageUploadSectio
             {/* Upload */}
             <div>
               <label className="block text-sm font-semibold text-slate-800 mb-2">
-                Upload Image * (Recommended perspectives for exterior renderings)
+                Bild hochladen *
               </label>
               <div
                 className={`border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-all ${

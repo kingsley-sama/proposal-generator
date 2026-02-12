@@ -78,9 +78,9 @@ export default function ProposalFormPage() {
     projectName: '',
     projectType: '',
     customProjectType: '',
-    deliveryTime: 'Calculated automatically',
-    deliveryDaysMin: 0,
-    deliveryDaysMax: 0,
+    deliveryTime: '4-6',
+    deliveryDaysMin: 4,
+    deliveryDaysMax: 6,
     offerValidUntil: ''
   });
 
@@ -177,7 +177,12 @@ export default function ProposalFormPage() {
       }
 
       if (data.projectInfo) {
-        setProjectInfo(data.projectInfo);
+        const oneWeekLater = new Date();
+        oneWeekLater.setDate(oneWeekLater.getDate() + 7);
+        setProjectInfo({
+          ...data.projectInfo,
+          offerValidUntil: oneWeekLater.toISOString().split('T')[0]
+        });
       }
 
       if (data.services) {
@@ -331,7 +336,7 @@ export default function ProposalFormPage() {
         const priceMatrix: Record<string, number[]> = {
           'EFH': [499, 349, 299, 229, 199],
           'DHH': [599, 399, 359, 329, 299],
-          'MFH-3-5': [699, 499, 399, 349, 329], // Added MFH-3-5
+          'MFH-3-5': [599, 399, 359, 329, 299], // Same as DHH
           'MFH-6-10': [699, 499, 399, 349, 329],
           'MFH-11-15': [799, 599, 499, 399, 349]
         };
@@ -342,8 +347,11 @@ export default function ProposalFormPage() {
         return unitPrice * quantity;
       }
       
-      case 'exterior-bird':
-        return 12 * quantity;
+      case 'exterior-bird': {
+        if (quantity === 1) return 199;
+        if (quantity === 2) return 149 * 2;
+        return 99 * quantity;
+      }
       
       case '3d-floorplan': {
         const projectType = serviceProjectTypes[serviceId];
@@ -356,9 +364,18 @@ export default function ProposalFormPage() {
         }
         return 69 * quantity;
       }
+
+      case '3d-floorplan-special':
+        return 99 * quantity;
       
       case '3d-complete-floor':
         return 199 * quantity;
+
+      case '2d-floor-view':
+        return 99 * quantity;
+
+      case '2d-garage-plan':
+        return 99 * quantity;
       
       case '2d-floorplan': {
         const projectType = serviceProjectTypes[serviceId];
@@ -377,6 +394,9 @@ export default function ProposalFormPage() {
       
       case 'renovation':
         return 139 * quantity;
+
+      case 'renovation-exterior':
+        return 189 * quantity;
       
       case '360-interior': {
         const apartmentSize = serviceApartmentSizes[serviceId];
@@ -396,23 +416,60 @@ export default function ProposalFormPage() {
         };
         return (prices[buildingType] || 0) * quantity;
       }
-      
-      case 'slideshow':
-        return 499 * quantity;
-      
-      case 'site-plan':
-        return 99 * quantity;
-      
-      case 'social-media':
+
+      case 'timelapse-exterior':
+        return 899 * quantity;
+
+      case 'ki-video':
         return 299 * quantity;
       
+      case 'slideshow':
+        return 0; // Price TBD
+      
+      case 'site-plan':
+        return 0; // Price TBD
+
+      case '2d-micro-location':
+        return 129 * quantity;
+
+      case '2d-macro-location':
+        return 129 * quantity;
+      
+      case 'social-media':
+        return 0; // Price TBD
+      
       case 'interior': {
+        const projectType = serviceProjectTypes[serviceId];
+        if (projectType === 'commercial') {
+          // Commercial interior pricing
+          const commercialTierPrices = [499, 399, 389, 369, 359, 349, 339, 329, 319];
+          const unitPrice = quantity <= 9 ? commercialTierPrices[quantity - 1] : 299;
+          return unitPrice * quantity;
+        }
+        // Residential interior pricing
         const tierPrices = [399, 299, 289, 269, 259, 249, 239, 229, 219];
         const unitPrice = quantity <= 9 ? tierPrices[quantity - 1] : 199;
         return unitPrice * quantity;
       }
       
       case 'terrace':
+        return 0; // Price on request
+      
+      case 'video-snippet':
+        return 0; // Price TBD
+      
+      case 'expose-layout':
+        return 0; // Price TBD
+      
+      case 'expose-creation':
+        return 0; // Price TBD
+      
+      case 'project-branding':
+        return 0; // Price TBD
+      
+      case 'project-website':
+      case 'flat-finder':
+      case 'online-marketing':
         return 0; // Price on request
       
       default:
@@ -425,17 +482,32 @@ export default function ProposalFormPage() {
       '3D-Außenvisualisierung Bodenperspektive': 'exterior-ground',
       '3D-Außenvisualisierung Vogelperspektive': 'exterior-bird',
       '3D-Grundriss': '3d-floorplan',
+      '3D-Grundriss Spezial': '3d-floorplan-special',
       '3D-Geschossansicht': '3d-complete-floor',
       '2D-Grundriss': '2d-floorplan',
+      '2D-Geschossansicht': '2d-floor-view',
+      '2D-Tiefgaragenplan': '2d-garage-plan',
       'Digital Home Staging': 'home-staging',
       'Digitale Renovierung': 'renovation',
+      'Digitale Renovierung Außen': 'renovation-exterior',
       '360° Tour Innen (Virtuelle Tour)': '360-interior',
       'Video Außen': '360-exterior',
+      'Zeitraffer Außen': 'timelapse-exterior',
+      'KI Video': 'ki-video',
       'Slideshow Video': 'slideshow',
       '3D-Lageplan': 'site-plan',
+      '2D-Mikrolageplan': '2d-micro-location',
+      '2D-Makrolageplan': '2d-macro-location',
       'Social Media Paket': 'social-media',
       '3D-Innenvisualisierung': 'interior',
-      '3D-Visualisierung Terrasse': 'terrace'
+      '3D-Visualisierung Terrasse': 'terrace',
+      'Video Snippet Außen und Innen': 'video-snippet',
+      'Exposé Layout': 'expose-layout',
+      'Exposé-Erstellung': 'expose-creation',
+      'Projekt-Branding': 'project-branding',
+      'Projektwebseite (Profi-Design)': 'project-website',
+      'Flat Finder': 'flat-finder',
+      'Online Marketing': 'online-marketing'
     };
     return serviceMapping[name] || null;
   };
@@ -544,17 +616,32 @@ export default function ProposalFormPage() {
       'exterior-ground': '3D-Außenvisualisierung Bodenperspektive',
       'exterior-bird': '3D-Außenvisualisierung Vogelperspektive',
       '3d-floorplan': '3D-Grundriss',
+      '3d-floorplan-special': '3D-Grundriss Spezial',
       '3d-complete-floor': '3D-Geschossansicht',
       '2d-floorplan': '2D-Grundriss',
+      '2d-floor-view': '2D-Geschossansicht',
+      '2d-garage-plan': '2D-Tiefgaragenplan',
       'home-staging': 'Digital Home Staging',
       'renovation': 'Digitale Renovierung',
+      'renovation-exterior': 'Digitale Renovierung Außen',
       '360-interior': '360° Tour Innen (Virtuelle Tour)',
       '360-exterior': 'Video Außen',
+      'timelapse-exterior': 'Zeitraffer Außen',
+      'ki-video': 'KI Video',
       'slideshow': 'Slideshow Video',
       'site-plan': '3D-Lageplan',
+      '2d-micro-location': '2D-Mikrolageplan',
+      '2d-macro-location': '2D-Makrolageplan',
       'social-media': 'Social Media Paket',
       'interior': '3D-Innenvisualisierung',
-      'terrace': '3D-Visualisierung Terrasse'
+      'terrace': '3D-Visualisierung Terrasse',
+      'video-snippet': 'Video Snippet Außen und Innen',
+      'expose-layout': 'Exposé Layout',
+      'expose-creation': 'Exposé-Erstellung',
+      'project-branding': 'Projekt-Branding',
+      'project-website': 'Projektwebseite (Profi-Design)',
+      'flat-finder': 'Flat Finder',
+      'online-marketing': 'Online Marketing'
     };
     return serviceMapping[serviceId] || serviceId;
   };
@@ -571,7 +658,7 @@ export default function ProposalFormPage() {
     const clientIdentifier = clientInfo.clientNumber.trim();
     
     if (!clientIdentifier) {
-      showNotification('Please enter a Client ID or Email', 'error');
+      showNotification('Bitte Kundennummer oder E-Mail eingeben', 'error');
       return;
     }
 
@@ -580,12 +667,12 @@ export default function ProposalFormPage() {
     const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientIdentifier);
 
     if (!isClientNumber && !isEmail) {
-      showNotification('Please enter a valid 5-digit Client ID or Email address', 'error');
+      showNotification('Bitte eine gültige 5-stellige Kundennummer oder E-Mail-Adresse eingeben', 'error');
       return;
     }
 
     try {
-      showNotification('🔍 Searching for client...', 'info');
+      showNotification('🔍 Kunde wird gesucht...', 'info');
       const response = await fetch(`/api/client-lookup/${encodeURIComponent(clientIdentifier)}`);
       
       if (response.ok) {
@@ -599,14 +686,14 @@ export default function ProposalFormPage() {
           }));
           showNotification(`✓ ${client.company_name || 'Client found'}`, 'success');
         } else {
-          showNotification('⚠ Client/Company not found', 'error');
+          showNotification('⚠ Kunde/Firma nicht gefunden', 'error');
         }
       } else {
-        showNotification('⚠ Error connecting to database', 'error');
+        showNotification('⚠ Fehler bei Datenbankverbindung', 'error');
       }
     } catch (error) {
       console.error('Error looking up client:', error);
-      showNotification('⚠ Connection error', 'error');
+      showNotification('⚠ Verbindungsfehler', 'error');
     }
   };
 
@@ -619,21 +706,21 @@ export default function ProposalFormPage() {
 
   const handleCopyJSON = () => {
     navigator.clipboard.writeText(jsonData).then(() => {
-      showNotification('✅ JSON copied to clipboard!', 'success');
+      showNotification('✅ JSON in Zwischenablage kopiert!', 'success');
     });
   };
 
   const handlePreviewProposal = () => {
     if (!clientInfo.companyName || !clientInfo.street || !clientInfo.postalCode || 
         !clientInfo.city || !clientInfo.country) {
-      showNotification('Please fill in all required client information fields.', 'error');
+      showNotification('Bitte alle Pflichtfelder der Kundeninformationen ausfüllen.', 'error');
       return;
     }
 
     const data = collectFormData(true);
 
     if (data.services.length === 0) {
-      showNotification('Please select at least one service.', 'error');
+      showNotification('Bitte mindestens eine Leistung auswählen.', 'error');
       return;
     }
 
@@ -642,12 +729,12 @@ export default function ProposalFormPage() {
       window.open('/preview', '_blank');
     } catch (error) {
       console.error('Error storing preview data:', error);
-      showNotification('Error preparing preview. Please try again.', 'error');
+      showNotification('Fehler bei Vorschau-Vorbereitung. Bitte erneut versuchen.', 'error');
     }
   };
 
   const handleReset = () => {
-    if (confirm('Are you sure you want to reset the form? This will clear all saved data.')) {
+    if (confirm('Sind Sie sicher, dass Sie das Formular zurücksetzen möchten? Alle gespeicherten Daten werden gelöscht.')) {
       setClientInfo({
         clientNumber: '',
         companyName: '',
@@ -661,9 +748,9 @@ export default function ProposalFormPage() {
         projectName: '',
         projectType: '',
         customProjectType: '',
-        deliveryTime: 'Calculated automatically',
-        deliveryDaysMin: 0,
-        deliveryDaysMax: 0,
+        deliveryTime: '4-6',
+        deliveryDaysMin: 4,
+        deliveryDaysMax: 6,
         offerValidUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       });
       setActiveServices(new Set());
@@ -689,10 +776,10 @@ export default function ProposalFormPage() {
         <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-10 py-12 flex items-center justify-between">
           <div className="flex-1">
             <h1 className="text-white text-3xl font-semibold tracking-tight">
-              Proposal Generator
+              Angebotsgenerator
             </h1>
             <p className="text-white/80 mt-2 text-base">
-              Client Proposal Generation Form
+              Angebot erstellen
             </p>
           </div>
           <div className="flex-shrink-0">
@@ -705,12 +792,12 @@ export default function ProposalFormPage() {
           {/* Client Information */}
           <div className="mb-10 pb-8 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-slate-800 mb-6">
-              👤 Client Information
+              👤 Kundeninformationen
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                  Client ID or Email
+                  Kundennummer oder E-Mail
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -730,32 +817,32 @@ export default function ProposalFormPage() {
                   </button>
                 </div>
                 <span className="text-xs text-gray-700 mt-1.5 block">
-                  Enter 5-digit Client ID or Email Address to fetch company name
+                  5-stellige Kundennummer oder E-Mail-Adresse eingeben
                 </span>
               </div>
               
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                  Company Name *
+                  Firmenname *
                 </label>
                 <input
                   type="text"
                   value={clientInfo.companyName}
                   onChange={(e) => setClientInfo(prev => ({ ...prev, companyName: e.target.value }))}
-                  placeholder="Auto-filled from database"
+                  placeholder="Wird aus Datenbank geladen"
                   className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                  Address *
+                  Straße *
                 </label>
                 <input
                   type="text"
                   value={clientInfo.street}
                   onChange={(e) => setClientInfo(prev => ({ ...prev, street: e.target.value }))}
-                  placeholder="e.g. Sample Street 123"
+                  placeholder="z.B. Musterstraße 123"
                   required
                   className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800"
                 />
@@ -763,13 +850,13 @@ export default function ProposalFormPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                  Postal Code *
+                  PLZ *
                 </label>
                 <input
                   type="text"
                   value={clientInfo.postalCode}
                   onChange={(e) => setClientInfo(prev => ({ ...prev, postalCode: e.target.value }))}
-                  placeholder="e.g. 12345"
+                  placeholder="z.B. 12345"
                   required
                   className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800"
                 />
@@ -777,13 +864,13 @@ export default function ProposalFormPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                  City *
+                  Ort *
                 </label>
                 <input
                   type="text"
                   value={clientInfo.city}
                   onChange={(e) => setClientInfo(prev => ({ ...prev, city: e.target.value }))}
-                  placeholder="e.g. Berlin"
+                  placeholder="z.B. Berlin"
                   required
                   className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800"
                 />
@@ -791,7 +878,7 @@ export default function ProposalFormPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                  Country *
+                  Land *
                 </label>
                 <select
                   value={clientInfo.country}
@@ -799,7 +886,7 @@ export default function ProposalFormPage() {
                   required
                   className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800"
                 >
-                  <option value="">Select Country</option>
+                  <option value="">Land wählen</option>
                   {countries.map(country => (
                     <option key={country} value={country}>{country}</option>
                   ))}
@@ -811,25 +898,25 @@ export default function ProposalFormPage() {
           {/* Project Information */}
           <div className="mb-10 pb-8 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-slate-800 mb-6">
-              🏢 Project Information
+              🏢 Projektinformationen
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                  Project Name
+                  Projektname
                 </label>
                 <input
                   type="text"
                   value={projectInfo.projectName}
                   onChange={(e) => setProjectInfo(prev => ({ ...prev, projectName: e.target.value }))}
-                  placeholder="e.g. Sunshine Residential Complex"
+                  placeholder="z.B. Sonnenhof Wohnanlage"
                   className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                  Building Type *
+                  Gebäudetyp *
                 </label>
                 <select
                   value={projectInfo.projectType}
@@ -837,26 +924,26 @@ export default function ProposalFormPage() {
                   required
                   className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800"
                 >
-                  <option value="">Select Building Type...</option>
+                  <option value="">Gebäudetyp wählen...</option>
                   {projectTypes.map(type => (
                     <option key={type} value={type}>{type}</option>
                   ))}
                 </select>
                 <span className="text-xs text-gray-700 mt-1.5 block">
-                  Select the type of building for this proposal (affects pricing)
+                  Gebäudetyp beeinflusst die Preisgestaltung
                 </span>
               </div>
 
               {projectInfo.projectType === 'Custom' && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                    Custom Building Type
+                    Eigener Gebäudetyp
                   </label>
                   <input
                     type="text"
                     value={projectInfo.customProjectType}
                     onChange={(e) => setProjectInfo(prev => ({ ...prev, customProjectType: e.target.value }))}
-                    placeholder="Enter custom building type"
+                    placeholder="Eigenen Gebäudetyp eingeben"
                     className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800"
                   />
                 </div>
@@ -864,22 +951,22 @@ export default function ProposalFormPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                  Delivery Time *
+                  Lieferzeit *
                 </label>
                 <input
                   type="text"
                   value={projectInfo.deliveryTime}
-                  readOnly
-                  className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 bg-gray-50 cursor-not-allowed"
+                  onChange={(e) => setProjectInfo(prev => ({ ...prev, deliveryTime: e.target.value }))}
+                  className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800"
                 />
                 <span className="text-xs text-gray-700 mt-1.5 block">
-                  Auto-calculated based on selected services
+                  Standard: 4-6 (nur die Zahl/Range eingeben, "Arbeitstage" wird automatisch ergänzt)
                 </span>
               </div>
 
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                  Offer Valid Until *
+                  Angebot gültig bis *
                 </label>
                 <input
                   type="date"
@@ -895,7 +982,7 @@ export default function ProposalFormPage() {
           {/* Services Section */}
           <div className="mb-10 pb-8 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-slate-800 mb-6">
-              🎨 Select Services
+              🎨 Leistungen auswählen
             </h2>
             
             {ALL_SERVICES.map((service) => (
@@ -923,9 +1010,6 @@ export default function ProposalFormPage() {
                 onQuantityChange={(qty) => {
                   setServiceQuantities(prev => ({ ...prev, [service.id]: qty }));
                 }}
-                onCustomPriceChange={(price) => {
-                  setServiceCustomPrices(prev => ({ ...prev, [service.id]: price }));
-                }}
                 onBuildingTypeChange={(type) => {
                   setServiceBuildingTypes(prev => ({ ...prev, [service.id]: type }));
                 }}
@@ -943,19 +1027,19 @@ export default function ProposalFormPage() {
 
             {/* Custom Services Section */}
             <div className="mt-6 border-t pt-6">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">Add Custom Product</h3>
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">Eigenes Produkt hinzufügen</h3>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-gray-50 p-4 rounded-lg">
                 <div className="md:col-span-1">
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Name</label>
                   <input 
                     type="text" 
                     id="customName"
-                    placeholder="Product Name"
+                    placeholder="Produktname"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md"
                   />
                 </div>
                 <div className="md:col-span-1">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Price (€)</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Preis (€)</label>
                   <input 
                     type="number" 
                     id="customPrice"
@@ -966,11 +1050,11 @@ export default function ProposalFormPage() {
                 </div>
                 <div className="md:col-span-2 flex gap-2">
                   <div className="flex-1">
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Beschreibung</label>
                     <input 
                       type="text" 
                       id="customDesc"
-                      placeholder="Short description"
+                      placeholder="Kurze Beschreibung"
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"
                     />
                   </div>
@@ -997,14 +1081,14 @@ export default function ProposalFormPage() {
                             nameEl.value = '';
                             priceEl.value = '';
                             descEl.value = '';
-                            showNotification('Custom product added', 'success');
+                            showNotification('Eigenes Produkt hinzugefügt', 'success');
                         } else {
-                            showNotification('Name and Price are required', 'error');
+                            showNotification('Name und Preis sind erforderlich', 'error');
                         }
                     }}
                     className="bg-slate-800 text-white px-4 py-2 rounded-md hover:bg-slate-700 transition-colors h-[42px]"
                   >
-                    Add
+                    Hinzufügen
                   </button>
                 </div>
               </div>
@@ -1042,7 +1126,7 @@ export default function ProposalFormPage() {
                                     }}
                                     className="text-red-500 hover:text-red-700"
                                 >
-                                    Remove
+                                    Entfernen
                                 </button>
                             </div>
                         </div>
@@ -1061,21 +1145,21 @@ export default function ProposalFormPage() {
           {/* Discount Section */}
           <div className="mb-10 pb-8 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-slate-800 mb-6">
-              💸 Discount (Optional)
+              💸 Rabatt (Optional)
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                  Discount Type
+                  Rabattart
                 </label>
                 <select
                   value={discount.type}
                   onChange={(e) => setDiscount(prev => ({ ...prev, type: e.target.value }))}
                   className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800"
                 >
-                  <option value="">No Discount</option>
-                  <option value="percentage">Percentage (%)</option>
-                  <option value="fixed">Fixed Amount (EUR)</option>
+                  <option value="">Kein Rabatt</option>
+                  <option value="percentage">Prozent (%)</option>
+                  <option value="fixed">Festbetrag (EUR)</option>
                 </select>
               </div>
 
@@ -1083,7 +1167,7 @@ export default function ProposalFormPage() {
                 <>
                   <div>
                     <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                      Discount Value
+                      Rabattwert
                     </label>
                     <input
                       type="number"
@@ -1095,19 +1179,19 @@ export default function ProposalFormPage() {
                       className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800"
                     />
                     <span className="text-xs text-gray-700 mt-1.5 block">
-                      {discount.type === 'percentage' ? 'Enter percentage (e.g., 10 for 10%)' : 'Enter amount in EUR'}
+                      {discount.type === 'percentage' ? 'Prozent eingeben (z.B. 10 für 10%)' : 'Betrag in EUR eingeben'}
                     </span>
                   </div>
 
                   <div className="md:col-span-2">
                     <label className="block text-sm font-semibold text-slate-800 mb-2.5">
-                      Discount Description
+                      Rabattbeschreibung
                     </label>
                     <input
                       type="text"
                       value={discount.description}
                       onChange={(e) => setDiscount(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="e.g. Mengenrabatt, Sonderaktion"
+                      placeholder="z.B. Mengenrabatt, Sonderaktion"
                       className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800"
                     />
                   </div>
@@ -1126,21 +1210,21 @@ export default function ProposalFormPage() {
               onClick={handleReset}
               className="px-8 py-3.5 bg-gray-100 text-slate-800 rounded-lg text-base font-semibold border border-gray-300 hover:bg-gray-200 transition-colors"
             >
-              🔄 Reset
+              🔄 Zurücksetzen
             </button>
             <button
               type="button"
               onClick={handleGenerateJSON}
               className="px-8 py-3.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white rounded-lg text-base font-semibold hover:shadow-lg hover:-translate-y-0.5 transition-all"
             >
-              📋 Generate JSON
+              📋 JSON erstellen
             </button>
             <button
               type="button"
               onClick={handlePreviewProposal}
               className="px-8 py-3.5 bg-gradient-to-r from-slate-800 to-slate-700 text-white rounded-lg text-base font-semibold hover:shadow-lg hover:-translate-y-0.5 transition-all"
             >
-              👁️ Preview Proposal
+              👁️ Vorschau Angebot
             </button>
           </div>
 
@@ -1155,7 +1239,7 @@ export default function ProposalFormPage() {
                 onClick={handleCopyJSON}
                 className="mt-2.5 px-5 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors text-sm"
               >
-                📋 Copy JSON
+                📋 JSON kopieren
               </button>
             </div>
           )}

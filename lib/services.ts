@@ -14,11 +14,32 @@ export const ALL_SERVICES = [
     hasProjectType: false
   },
   {
+    id: 'interior',
+    name: '3D-Innenvisualisierung',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: true
+  },
+  {
+    id: 'terrace',
+    name: '3D-Visualisierung Terrasse',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
+  },
+  {
     id: '3d-floorplan',
     name: '3D-Grundriss',
     hasBuildingType: false,
     hasApartmentSize: false,
     hasProjectType: true
+  },
+  {
+    id: '3d-floorplan-special',
+    name: '3D-Grundriss Spezial',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
   },
   {
     id: '3d-complete-floor',
@@ -35,6 +56,41 @@ export const ALL_SERVICES = [
     hasProjectType: true
   },
   {
+    id: '2d-floor-view',
+    name: '2D-Geschossansicht',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
+  },
+  {
+    id: '2d-garage-plan',
+    name: '2D-Tiefgaragenplan',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
+  },
+  {
+    id: 'site-plan',
+    name: '3D-Lageplan',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
+  },
+  {
+    id: '2d-micro-location',
+    name: '2D-Mikrolageplan',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
+  },
+  {
+    id: '2d-macro-location',
+    name: '2D-Makrolageplan',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
+  },
+  {
     id: 'home-staging',
     name: 'Digital Home Staging',
     hasBuildingType: false,
@@ -44,6 +100,13 @@ export const ALL_SERVICES = [
   {
     id: 'renovation',
     name: 'Digitale Renovierung',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
+  },
+  {
+    id: 'renovation-exterior',
+    name: 'Digitale Renovierung Außen',
     hasBuildingType: false,
     hasApartmentSize: false,
     hasProjectType: false
@@ -63,15 +126,22 @@ export const ALL_SERVICES = [
     hasProjectType: false
   },
   {
-    id: 'slideshow',
-    name: 'Slideshow Video',
+    id: 'timelapse-exterior',
+    name: 'Zeitraffer Außen',
     hasBuildingType: false,
     hasApartmentSize: false,
     hasProjectType: false
   },
   {
-    id: 'site-plan',
-    name: '3D-Lageplan',
+    id: 'ki-video',
+    name: 'KI Video',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
+  },
+  {
+    id: 'slideshow',
+    name: 'Slideshow Video',
     hasBuildingType: false,
     hasApartmentSize: false,
     hasProjectType: false
@@ -84,15 +154,50 @@ export const ALL_SERVICES = [
     hasProjectType: false
   },
   {
-    id: 'interior',
-    name: '3D-Innenvisualisierung',
+    id: 'video-snippet',
+    name: 'Video Snippet Außen und Innen',
     hasBuildingType: false,
     hasApartmentSize: false,
     hasProjectType: false
   },
   {
-    id: 'terrace',
-    name: '3D-Visualisierung Terrasse',
+    id: 'expose-layout',
+    name: 'Exposé Layout',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
+  },
+  {
+    id: 'expose-creation',
+    name: 'Exposé-Erstellung',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
+  },
+  {
+    id: 'project-branding',
+    name: 'Projekt-Branding',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
+  },
+  {
+    id: 'project-website',
+    name: 'Projektwebseite (Profi-Design)',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
+  },
+  {
+    id: 'flat-finder',
+    name: 'Flat Finder',
+    hasBuildingType: false,
+    hasApartmentSize: false,
+    hasProjectType: false
+  },
+  {
+    id: 'online-marketing',
+    name: 'Online Marketing',
     hasBuildingType: false,
     hasApartmentSize: false,
     hasProjectType: false
