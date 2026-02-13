@@ -19,89 +19,46 @@ const sampleData = {
   offerNumber: "2026-01-29-8",
   date: "29.01.2026",
   offerValidUntil: "05.02.2026",
-  offerValidMonth: "02",
   deliveryTime: "14-21 Werktage",
+  projectName: "Wohnkomplex Sonnenweg",
+  projectNumber: "PRJ-2026-001",
 
-  // Services (array - use loop {#services}...{/services})
+  // Services (array - use loop in template)
   services: [
     {
-      quantity: "2",
+      quantity: 2,
       name: "3D Außenvisualisierung Bodenperspektive",
-      // Nested description for {#description}...{/description} loop
-      description: [
-        {
-          text: "Fotorealistische 3D-Visualisierung aus Bodenperspektive",
-          children: [
-            { text: "Hochauflösende Darstellung (min. 3000px)", children: [] },
-            { text: "Professionelle Lichtsetzung und Materialisierung", children: [] }
-          ]
-        }
-      ],
-      // Flat description string (fallback for {description_text})
-      description_text: "• Fotorealistische 3D-Visualisierung aus Bodenperspektive\n  ○ Hochauflösende Darstellung (min. 3000px)\n  ○ Professionelle Lichtsetzung und Materialisierung",
-      unitPrice: "399,00",
-      link: "https://www.exposeprofi.de/referenzen",
-      hasLink: true,
-      pricingTiers: [{ text: "Ab 3 Stück: 349,00 €" }],
-      hasPricingTiers: true
+      description: "• Fotorealistische 3D-Visualisierung aus Bodenperspektive\n• Hochauflösende Darstellung (min. 3000px)\n• Professionelle Lichtsetzung und Materialisierung",
+      unitPrice: "399,00"
     },
     {
-      quantity: "1",
+      quantity: 1,
       name: "3D Grundriss",
-      description: [
-        { text: "Fotorealistischer 3D-Grundriss", children: [] },
-        { text: "Möblierte Darstellung", children: [] }
-      ],
-      description_text: "• Fotorealistischer 3D-Grundriss\n• Möblierte Darstellung",
-      unitPrice: "69,00",
-      link: "",
-      hasLink: false,
-      pricingTiers: [],
-      hasPricingTiers: false
+      description: "• Fotorealistischer 3D-Grundriss\n• Möblierte Darstellung\n• Hochauflösende Qualität",
+      unitPrice: "69,00"
     }
   ],
   hasServices: true,
 
-  // Pricing tiers (flat list across all services, for {#pricing}...{/pricing})
-  pricing: [{ text: "Ab 3 Stück: 349,00 €" }],
-  hasPricing: true,
-
-  // Images (array - use loop {#images}...{/images})
-  // Use {%src} for inline image insertion
+  // Images (array - use loop in template)
   images: [
     {
       title: "Perspektive 1 - Hauptansicht",
       description: "Ansicht der Immobilie von Süden",
-      hasImage: true,
-      src: "data:image/png;base64,..." // base64 data URI
+      hasImage: true
     }
   ],
   hasImages: true,
 
-  // Pricing summary
+  // Pricing
   subtotalNet: "867,00",
-  sutotaNet: "867,00",            // alias (template typo compat)
-  totalNetPrice: "817,00",
-  totalVat: "155,23",
-  totalGrossPrice: "972,23",
-  totalCrossPrice: "972,23",      // alias (template typo compat)
-
-  // Discount
   hasDiscount: true,
   discountDescription: "Mengenrabatt",
   discountAmount: "50,00",
   discountType: "€",
-
-  // Conditional: small order (≤ 2000€ net) vs large order (> 2000€ net)
-  hasSmallValue: true,            // net ≤ 2000
-  hasSmallalue: true,             // alias (template typo compat)
-  hasLargeValue: false,           // net > 2000
-
-  // Delivery / payment details
-  estimatedDeliveryDay: "14-21",
-  estimatedDeliverDay: "14-21",   // alias (template typo compat)
-  halfAmount: "0,00",             // 50% gross (for advance payment)
-  remainingAmount: "972,23",      // remaining after advance
+  totalNetPrice: "817,00",
+  totalVat: "155,23",
+  totalGrossPrice: "972,23",
 
   // Signature
   signatureName: "Christopher Helm",
