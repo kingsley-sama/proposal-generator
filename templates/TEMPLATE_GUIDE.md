@@ -62,6 +62,8 @@ Replace text in your Word document with these placeholders (use curly braces):
 Use `{#services}{/services}` to loop through all services. Include these placeholders inside:
 - `{quantity}` - Number of units
 - `{name}` - Service name
+- `{sub_name}` - Service sub-name (e.g. project unit count or combination note)
+- `{#hasSubName}{sub_name}{/hasSubName}` - Conditionally render sub-name only when present
 - `{description}` - Formatted service description with bullet points
 - `{unitPrice}` - Unit price in EUR format (1.234,56)
 

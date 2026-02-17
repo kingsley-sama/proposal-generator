@@ -17,6 +17,7 @@ interface ProposalData {
 
 interface ServiceDescription {
   name: string;
+  sub_name?: string;
   defaultPrice?: number;
   description: any[];
   pricingTiers?: Array<{ quantity: number; price: number; label: string }>;
@@ -173,6 +174,12 @@ export default function PreviewPage() {
         if (!service.link) {
           if (serviceInfo && serviceInfo.link) {
             service.link = serviceInfo.link;
+          }
+        }
+        // Add sub_name if not present
+        if (!service.sub_name) {
+          if (serviceInfo && (serviceInfo as any).sub_name) {
+            service.sub_name = (serviceInfo as any).sub_name;
           }
         }
         return service;
@@ -784,6 +791,19 @@ export default function PreviewPage() {
                           >
                             {service.name}
                           </span>
+                          {service.sub_name && (
+                            <div className="mt-0.5">
+                              <span
+                                contentEditable
+                                suppressContentEditableWarning
+                                onBlur={(e) => updateService(index, 'sub_name', e.currentTarget.textContent || '')}
+                                onKeyDown={handleEnterKey}
+                                className="text-xs text-gray-600 italic cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                              >
+                                {service.sub_name}
+                              </span>
+                            </div>
+                          )}
                         </td>
                         <td className="border border-gray-800 p-1.5 align-top text-gray-900">
                           {(() => {
