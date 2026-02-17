@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { ServiceItem } from '@/components/ServiceItem';
 import { ImageUploadSection } from '@/components/ImageUploadSection';
@@ -63,6 +64,7 @@ interface ImageData {
 }
 
 export default function ProposalFormPage() {
+  const router = useRouter();
   const { showNotification } = useNotification();
   const [clientInfo, setClientInfo] = useState<ClientInfo>({
     clientNumber: '',
@@ -726,7 +728,7 @@ export default function ProposalFormPage() {
 
     try {
       localStorage.setItem('proposalPreviewData', JSON.stringify(data));
-      window.open('/preview', '_blank');
+      router.push('/preview');
     } catch (error) {
       console.error('Error storing preview data:', error);
       showNotification('Fehler bei Vorschau-Vorbereitung. Bitte erneut versuchen.', 'error');

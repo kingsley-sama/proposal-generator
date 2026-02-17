@@ -969,7 +969,7 @@ export default function PreviewPage() {
                       <img
                         src={image.imageData}
                         alt={image.title || `Perspective ${index + 1}`}
-                        className="w-[400px] h-auto"
+                        className="max-w-[400px] w-auto h-auto object-contain"
                       />
                     </div>
                   )}
