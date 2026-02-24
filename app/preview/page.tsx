@@ -28,6 +28,7 @@ export default function PreviewPage() {
   const router = useRouter();
   const { showNotification } = useNotification();
   const [proposalData, setProposalData] = useState<ProposalData | null>(null);
+  const proposalDataRef = useRef<ProposalData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasDiscount, setHasDiscount] = useState(false);
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('fixed');
@@ -40,6 +41,14 @@ export default function PreviewPage() {
   // Bulk Edit State
   const [editingServiceIndex, setEditingServiceIndex] = useState<number | null>(null);
   const [bulkEditText, setBulkEditText] = useState('');
+  
+  // Track if initial calculation has been done
+  const initialCalculationDone = useRef(false);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    proposalDataRef.current = proposalData;
+  }, [proposalData]);
 
   const toDashString = (items: any[], level = 0): string => {
       if (!items) return '';
@@ -104,6 +113,14 @@ export default function PreviewPage() {
   useEffect(() => {
     loadProposalData();
   }, []);
+
+  // Recalculate totals after initial data load to ensure all calculations are in sync
+  useEffect(() => {
+    if (proposalData && !initialCalculationDone.current) {
+      initialCalculationDone.current = true;
+      recalculateTotals();
+    }
+  }, [proposalData]);
 
   const loadProposalData = () => {
     let dataStr = localStorage.getItem('proposalPreviewData');
@@ -182,6 +199,12 @@ export default function PreviewPage() {
             service.sub_name = (serviceInfo as any).sub_name;
           }
         }
+        
+        // Calculate and store line total
+        const qty = parseInt(service.quantity) || 0;
+        const price = parseFloat(service.unitPrice?.toString().replace(',', '.')) || 0;
+        service.lineTotal = (qty * price).toFixed(2).replace('.', ',');
+        
         return service;
       });
     }
@@ -198,22 +221,36 @@ export default function PreviewPage() {
   };
 
   const updateProposalData = (updates: Partial<ProposalData>) => {
-    if (!proposalData) return;
-    const newData = { ...proposalData, ...updates };
-    setProposalData(newData);
-    localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
+    setProposalData(prev => {
+      if (!prev) return prev;
+      const newData = { ...prev, ...updates };
+      localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
+      return newData;
+    });
   };
 
   const updateService = (index: number, field: string, value: any) => {
-    if (!proposalData) return;
-    const newServices = [...proposalData.services];
-    newServices[index] = { ...newServices[index], [field]: value };
-    updateProposalData({ services: newServices });
-    
-    // Recalculate totals if quantity or price changed
-    if (field === 'quantity' || field === 'unitPrice') {
-      recalculateTotals(newServices);
-    }
+    setProposalData(prev => {
+      if (!prev) return prev;
+      const newServices = [...prev.services];
+      newServices[index] = { ...newServices[index], [field]: value };
+      
+      // Recalculate line total and pricing if quantity or price changed
+      if (field === 'quantity' || field === 'unitPrice') {
+        const qty = parseInt(newServices[index].quantity) || 0;
+        const price = parseFloat(newServices[index].unitPrice?.toString().replace(',', '.')) || 0;
+        newServices[index].lineTotal = (qty * price).toFixed(2).replace('.', ',');
+        
+        const newPricing = computePricing(prev, newServices);
+        const newData = { ...prev, services: newServices, pricing: newPricing };
+        localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
+        return newData;
+      }
+      
+      const newData = { ...prev, services: newServices };
+      localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
+      return newData;
+    });
   };
 
   const updateBulletPoint = (serviceIndex: number, bulletPath: string, newText: string) => {
@@ -447,12 +484,10 @@ export default function PreviewPage() {
     updateProposalData({ services: newServices });
   };
 
-  const recalculateTotals = (services?: any[]) => {
-    if (!proposalData) return;
-    const servicesData = services || proposalData.services;
-    
+  // Pure function: compute pricing from a given data + services (no state dependency)
+  const computePricing = (data: ProposalData, services: any[]) => {
     let subtotal = 0;
-    servicesData.forEach((service: any) => {
+    services.forEach((service: any) => {
       const qty = parseInt(service.quantity) || 0;
       const price = parseFloat(service.unitPrice?.toString().replace(',', '.')) || 0;
       subtotal += qty * price;
@@ -474,8 +509,8 @@ export default function PreviewPage() {
     
     const formatPrice = (val: number) => val.toFixed(2).replace('.', ',');
     
-    const newPricing = {
-      ...proposalData.pricing,
+    const newPricing: any = {
+      ...data.pricing,
       subtotalNet: formatPrice(subtotal),
       totalNetPrice: formatPrice(totalNet),
       totalVat: formatPrice(totalVat),
@@ -491,11 +526,34 @@ export default function PreviewPage() {
       };
     }
     
-    updateProposalData({ pricing: newPricing });
+    return newPricing;
   };
 
+  // Recalculate and update totals based on current or provided services
+  const recalculateTotals = () => {
+    setProposalData(prev => {
+      if (!prev) return prev;
+      
+      // Recalculate line totals for all services
+      const servicesData = prev.services.map((service: any) => {
+        const qty = parseInt(service.quantity) || 0;
+        const price = parseFloat(service.unitPrice?.toString().replace(',', '.')) || 0;
+        return {
+          ...service,
+          lineTotal: (qty * price).toFixed(2).replace('.', ',')
+        };
+      });
+      
+      const newPricing = computePricing(prev, servicesData);
+      const newData = { ...prev, services: servicesData, pricing: newPricing };
+      localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
+      return newData;
+    });
+  };
+
+  // Recalculate totals when discount-related values change
   useEffect(() => {
-    if (proposalData && hasDiscount) {
+    if (proposalData) {
       recalculateTotals();
     }
   }, [discountType, discountValue, hasDiscount, discountDescription]);
@@ -747,15 +805,16 @@ export default function PreviewPage() {
               <thead>
                 <tr>
                   <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[8%]">Anz.</th>
-                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[22%]">Bezeichnung</th>
-                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[55%]">Beschreibung</th>
-                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[15%]">Stückpreis netto</th>
+                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[20%]">Bezeichnung</th>
+                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[47%]">Beschreibung</th>
+                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[12%]">Stückpreis netto</th>
+                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[13%]">Gesamt netto</th>
                 </tr>
               </thead>
               <tbody>
                 {proposalData.services.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="border border-gray-800 p-4 text-center text-gray-600 italic">
+                    <td colSpan={5} className="border border-gray-800 p-4 text-center text-gray-600 italic">
                       Keine Dienste ausgewählt.
                     </td>
                   </tr>
@@ -768,18 +827,16 @@ export default function PreviewPage() {
                     rows.push(
                       <tr key={`service-${index}`}>
                         <td className="border border-gray-800 p-1.5 text-center align-top text-gray-900">
-                          <span
-                            contentEditable
-                            suppressContentEditableWarning
-                            onBlur={(e) => {
-                              const newQty = parseInt(e.currentTarget.textContent || '0');
+                          <input
+                            type="number"
+                            value={service.quantity}
+                            onChange={(e) => {
+                              const newQty = parseInt(e.target.value) || 0;
                               updateService(index, 'quantity', newQty);
                             }}
                             onKeyDown={handleEnterKey}
-                            className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
-                          >
-                            {service.quantity}
-                          </span>
+                            className="w-full text-center bg-transparent border-none outline-none hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
                         </td>
                         <td className="border border-gray-800 p-1.5 align-top text-gray-900">
                           <span
@@ -887,19 +944,27 @@ export default function PreviewPage() {
                           })()}
                         </td>
                         <td className="border border-gray-800 p-1.5 text-center align-top text-gray-900">
-                          <span
-                            contentEditable
-                            suppressContentEditableWarning
-                            onBlur={(e) => {
-                              const newPrice = e.currentTarget.textContent?.replace(',', '.') || '0';
-                              updateService(index, 'unitPrice', newPrice);
-                            }}
-                            onKeyDown={handleEnterKey}
-                            className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
-                          >
-                            {service.unitPrice}
+                          <span className="inline-flex items-center">
+                            <input
+                              type="text"
+                              value={service.unitPrice}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                updateService(index, 'unitPrice', raw);
+                              }}
+                              onBlur={(e) => {
+                                // Normalize on blur: replace comma with dot for storage
+                                const normalized = e.target.value.replace(',', '.');
+                                updateService(index, 'unitPrice', normalized);
+                              }}
+                              onKeyDown={handleEnterKey}
+                              className="w-20 text-center bg-transparent border-none outline-none hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                            />
+                            {' €'}
                           </span>
-                          {' €'}
+                        </td>
+                        <td className="border border-gray-800 p-1.5 text-center align-top text-gray-900 font-semibold">
+                          {service.lineTotal || '0,00'} €
                         </td>
                       </tr>
                     );
@@ -915,6 +980,7 @@ export default function PreviewPage() {
                             Preisstaffelung:
                           </td>
                           <td className="border border-gray-800 p-1.5">&nbsp;</td>
+                          <td className="border border-gray-800 p-1.5">&nbsp;</td>
                         </tr>
                       );
                       
@@ -927,6 +993,7 @@ export default function PreviewPage() {
                             <td className="border border-gray-800 p-1 pl-5 text-[8.5pt] text-gray-900">
                               {tier.label}
                             </td>
+                            <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
                             <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
                           </tr>
                         );
