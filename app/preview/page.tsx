@@ -28,12 +28,7 @@ export default function PreviewPage() {
   const router = useRouter();
   const { showNotification } = useNotification();
   const [proposalData, setProposalData] = useState<ProposalData | null>(null);
-  const proposalDataRef = useRef<ProposalData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [hasDiscount, setHasDiscount] = useState(false);
-  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('fixed');
-  const [discountValue, setDiscountValue] = useState('0');
-  const [discountDescription, setDiscountDescription] = useState('Mengenrabatt');
   const [showBulletModal, setShowBulletModal] = useState(false);
   const [bulletModalServiceIndex, setBulletModalServiceIndex] = useState<number | null>(null);
   const [bulletInputText, setBulletInputText] = useState('');
@@ -41,14 +36,6 @@ export default function PreviewPage() {
   // Bulk Edit State
   const [editingServiceIndex, setEditingServiceIndex] = useState<number | null>(null);
   const [bulkEditText, setBulkEditText] = useState('');
-  
-  // Track if initial calculation has been done
-  const initialCalculationDone = useRef(false);
-
-  // Keep ref in sync with state
-  useEffect(() => {
-    proposalDataRef.current = proposalData;
-  }, [proposalData]);
 
   const toDashString = (items: any[], level = 0): string => {
       if (!items) return '';
@@ -113,14 +100,6 @@ export default function PreviewPage() {
   useEffect(() => {
     loadProposalData();
   }, []);
-
-  // Recalculate totals after initial data load to ensure all calculations are in sync
-  useEffect(() => {
-    if (proposalData && !initialCalculationDone.current) {
-      initialCalculationDone.current = true;
-      recalculateTotals();
-    }
-  }, [proposalData]);
 
   const loadProposalData = () => {
     let dataStr = localStorage.getItem('proposalPreviewData');
@@ -199,58 +178,318 @@ export default function PreviewPage() {
             service.sub_name = (serviceInfo as any).sub_name;
           }
         }
-        
-        // Calculate and store line total
-        const qty = parseInt(service.quantity) || 0;
-        const price = parseFloat(service.unitPrice?.toString().replace(',', '.')) || 0;
-        service.lineTotal = (qty * price).toFixed(2).replace('.', ',');
-        
+
+        // === SYNC unitPrice with active tier for current quantity ===
+        if (service.pricingTiers && service.pricingTiers.length > 0) {
+          const qty = parseInt(service.quantity) || 0;
+          if (qty > 0) {
+            const exactTier = service.pricingTiers.find((t: any) => t.quantity === qty);
+            const lastTier = service.pricingTiers[service.pricingTiers.length - 1];
+            const activeTier = exactTier || (qty >= lastTier.quantity ? lastTier : null);
+            if (activeTier) {
+              const fmtSync = (p: number) => p.toFixed(2).replace('.', ',');
+              service.unitPrice = fmtSync(activeTier.price);
+            }
+          }
+        }
+
         return service;
       });
     }
+
+    // === Recalculate pricing from services on load ===
+    {
+      let subtotal = 0;
+      (data.services || []).forEach((service: any) => {
+        const qty = parseInt(service.quantity) || 0;
+        const priceStr = service.unitPrice?.toString() || '0';
+        const price = parseFloat(priceStr.replace(/\./g, '').replace(',', '.')) || parseFloat(priceStr) || 0;
+        subtotal += qty * price;
+      });
+
+      const disc = data.pricing?.discount;
+      let discountAmount = 0;
+      if (disc && disc.type && disc.value) {
+        const dv = parseFloat(disc.value.toString().replace(',', '.')) || 0;
+        if (disc.type === 'percentage') {
+          discountAmount = subtotal * (dv / 100);
+        } else {
+          discountAmount = dv;
+        }
+      }
+      const totalNet = subtotal - discountAmount;
+      const totalVat = totalNet * 0.19;
+      const totalGross = totalNet + totalVat;
+      const fp = (val: number) => val.toFixed(2).replace('.', ',');
+      data.pricing = {
+        ...data.pricing,
+        subtotalNet: fp(subtotal),
+        totalNetPrice: fp(totalNet),
+        totalVat: fp(totalVat),
+        totalGrossPrice: fp(totalGross)
+      };
+      if (disc) {
+        data.pricing.discount = { ...disc, amount: fp(discountAmount) };
+      }
+    }
     
     setProposalData(data);
-
-    // Check if discount exists
-    if (data.pricing?.discount && (data.pricing.discount.value || data.pricing.discount.amount)) {
-      setHasDiscount(true);
-      setDiscountType(data.pricing.discount.type || 'fixed');
-      setDiscountValue(data.pricing.discount.value?.toString() || data.pricing.discount.amount || '0');
-      setDiscountDescription(data.pricing.discount.description || 'Mengenrabatt');
-    }
   };
 
   const updateProposalData = (updates: Partial<ProposalData>) => {
-    setProposalData(prev => {
-      if (!prev) return prev;
-      const newData = { ...prev, ...updates };
-      localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
-      return newData;
-    });
+    if (!proposalData) return;
+    const newData = { ...proposalData, ...updates };
+    setProposalData(newData);
+    localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
+    // Also sync back to form storage so going back preserves edits
+    localStorage.setItem('proposalFormData', JSON.stringify(newData));
+  };
+
+  // Helper: find service ID from name
+  const findServiceId = (serviceName: string): string | null => {
+    for (const [key, value] of Object.entries(serviceDescriptions)) {
+      if ((value as any).name === serviceName) return key;
+    }
+    return null;
+  };
+
+  // Calculate the per-unit price for a service based on its type, quantity, and parameters.
+  // If the service has custom pricingTiers (edited by user), those take priority.
+  const calculateServiceUnitPrice = (service: any, quantity: number, data: ProposalData): number | null => {
+    const serviceName = service.name;
+    const serviceInfo = findServiceInfo(serviceName);
+    if (!serviceInfo) return null;
+
+    const serviceId = findServiceId(serviceName);
+    if (!serviceId) return null;
+
+    // For services that have pricingTiers, use those as source of truth
+    // This allows user-edited tier prices to propagate
+    if (service.pricingTiers && service.pricingTiers.length > 0) {
+      // Find exact tier match or the last tier (for ≥N)
+      const exactTier = service.pricingTiers.find((t: any) => t.quantity === quantity);
+      if (exactTier) return exactTier.price;
+      // If quantity exceeds all tiers, use last tier price
+      const lastTier = service.pricingTiers[service.pricingTiers.length - 1];
+      if (quantity >= lastTier.quantity) return lastTier.price;
+      return null;
+    }
+
+    switch (serviceId) {
+      case 'exterior-ground': {
+        const buildingType = data.projectInfo?.projectType;
+        if (!buildingType) return null;
+        const priceMatrix: Record<string, number[]> = {
+          'EFH': [499, 349, 299, 229, 199],
+          'DHH': [599, 399, 359, 329, 299],
+          'MFH-3-5': [599, 399, 359, 329, 299],
+          'MFH-6-10': [699, 499, 399, 349, 329],
+          'MFH-11-15': [799, 599, 499, 399, 349]
+        };
+        const prices = priceMatrix[buildingType];
+        if (!prices) return null;
+        return quantity <= 5 ? prices[quantity - 1] : prices[4];
+      }
+      case 'exterior-bird': {
+        if (quantity === 1) return 199;
+        if (quantity === 2) return 149;
+        return 99;
+      }
+      case 'interior': {
+        const projectType = service.projectType;
+        if (projectType === 'commercial') {
+          const commercialTierPrices = [499, 399, 389, 369, 359, 349, 339, 329, 319];
+          return quantity <= 9 ? commercialTierPrices[quantity - 1] : 299;
+        }
+        const tierPrices = [399, 299, 289, 269, 259, 249, 239, 229, 219];
+        return quantity <= 9 ? tierPrices[quantity - 1] : 199;
+      }
+      case '3d-floorplan': {
+        const projectType = service.projectType;
+        if (projectType === 'commercial') {
+          const areaSize = service.areaSize;
+          const commercialPrices: Record<string, number> = {
+            '100': 99, '250': 199, '500': 299, '1000': 399, '1500': 499
+          };
+          return commercialPrices[areaSize] || null;
+        }
+        return 69;
+      }
+      case '2d-floorplan': {
+        const projectType = service.projectType;
+        if (projectType === 'commercial') {
+          const areaSize = service.areaSize;
+          const commercialPrices: Record<string, number> = {
+            '100': 39, '250': 79, '500': 119, '1000': 159, '1500': 199
+          };
+          return commercialPrices[areaSize] || null;
+        }
+        return 49;
+      }
+      case '360-interior': {
+        const apartmentSize = service.apartmentSize;
+        if (!apartmentSize) return null;
+        const prices: Record<string, number> = {
+          '30': 999, '40': 1299, '50': 1499, '60': 1699,
+          '70': 1799, '80': 1899, '90': 1999, '100': 2299, 'EFH': 2499
+        };
+        return prices[apartmentSize] || null;
+      }
+      case '360-exterior': {
+        const buildingType = service.buildingType;
+        if (!buildingType) return null;
+        const prices: Record<string, number> = {
+          'EFH-DHH': 1299, 'MFH-3-5': 1299, 'MFH-6-10': 1699, 'MFH-11-15': 1999
+        };
+        return prices[buildingType] || null;
+      }
+      case '3d-floorplan-special': return 99;
+      case '3d-complete-floor': return 199;
+      case '2d-floor-view': return 99;
+      case '2d-garage-plan': return 99;
+      case 'home-staging': return 99;
+      case 'renovation': return 139;
+      case 'renovation-exterior': return 189;
+      case 'timelapse-exterior': return 899;
+      case 'ki-video': return 299;
+      case 'site-plan': return 99;
+      case '2d-micro-location': return 129;
+      case '2d-macro-location': return 129;
+      case 'expose-layout': return 1199;
+      case 'expose-creation': return 499;
+      default:
+        return null;
+    }
   };
 
   const updateService = (index: number, field: string, value: any) => {
-    setProposalData(prev => {
-      if (!prev) return prev;
-      const newServices = [...prev.services];
-      newServices[index] = { ...newServices[index], [field]: value };
-      
-      // Recalculate line total and pricing if quantity or price changed
-      if (field === 'quantity' || field === 'unitPrice') {
-        const qty = parseInt(newServices[index].quantity) || 0;
-        const price = parseFloat(newServices[index].unitPrice?.toString().replace(',', '.')) || 0;
-        newServices[index].lineTotal = (qty * price).toFixed(2).replace('.', ',');
+    if (!proposalData) return;
+    const newServices = [...proposalData.services];
+    newServices[index] = { ...newServices[index], [field]: value };
+    
+    const fmt = (p: number) => p.toFixed(2).replace('.', ',');
+
+    // When quantity changes, recalculate unitPrice based on pricing rules
+    if (field === 'quantity') {
+      const quantity = parseInt(value) || 0;
+      if (quantity > 0) {
+        const newUnitPrice = calculateServiceUnitPrice(newServices[index], quantity, proposalData);
+        if (newUnitPrice !== null) {
+          newServices[index].unitPrice = fmt(newUnitPrice);
+        }
         
-        const newPricing = computePricing(prev, newServices);
-        const newData = { ...prev, services: newServices, pricing: newPricing };
-        localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
-        return newData;
+        // Re-replace quantity placeholders in descriptions
+        const serviceInfo = findServiceInfo(newServices[index].name);
+        if (serviceInfo && serviceInfo.description) {
+          let defaults = JSON.parse(JSON.stringify(serviceInfo.description));
+          defaults = replacePlaceholders(defaults, {
+            quantity: quantity,
+            projectName: proposalData.projectInfo?.projectName || 'Das Projekt'
+          });
+          newServices[index].modifiedDefaults = defaults;
+        }
+
+        // Update pricing tiers for exterior-ground based on building type
+        if (newServices[index].name === '3D-Außenvisualisierung Bodenperspektive') {
+          const buildingType = proposalData.projectInfo?.projectType;
+          if (buildingType) {
+            const priceMatrix: Record<string, number[]> = {
+              'EFH': [499, 349, 299, 229, 199],
+              'DHH': [599, 399, 359, 329, 299],
+              'MFH-3-5': [599, 399, 359, 329, 299],
+              'MFH-6-10': [699, 499, 399, 349, 329],
+              'MFH-11-15': [799, 599, 499, 399, 349]
+            };
+            const prices = priceMatrix[buildingType];
+            if (prices) {
+              newServices[index].pricingTiers = [
+                { quantity: 1, price: prices[0], label: `1 Ansicht Netto: ${fmt(prices[0])} €` },
+                { quantity: 2, price: prices[1], label: `2 Ansichten: Netto pro Ansicht: ${fmt(prices[1])} €` },
+                { quantity: 3, price: prices[2], label: `3 Ansichten: Netto pro Ansicht: ${fmt(prices[2])} €` },
+                { quantity: 4, price: prices[3], label: `4 Ansichten: Netto pro Ansicht: ${fmt(prices[3])} €` },
+                { quantity: 5, price: prices[4], label: `≥5 Ansichten: Netto pro Ansicht: ${fmt(prices[4])} €` },
+              ];
+            }
+          }
+        }
       }
-      
-      const newData = { ...prev, services: newServices };
-      localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
-      return newData;
-    });
+    }
+
+    // When unitPrice is edited directly, sync it back to the matching pricing tier
+    if (field === 'unitPrice') {
+      const parsedPrice = parseFloat(value.toString().replace(/\./g, '').replace(',', '.')) || parseFloat(value) || 0;
+      const currentQty = parseInt(newServices[index].quantity) || 0;
+      const tiers = newServices[index].pricingTiers;
+
+      if (tiers && tiers.length > 0 && currentQty > 0) {
+        const updatedTiers = tiers.map((tier: any, ti: number) => {
+          // Match exact quantity, or last tier for ≥N quantities
+          const isMatch = tier.quantity === currentQty ||
+            (ti === tiers.length - 1 && currentQty >= tier.quantity);
+          if (!isMatch) return tier;
+
+          const newTier = { ...tier, price: parsedPrice };
+          if (newTier.quantity === 1) {
+            newTier.label = `1 Ansicht Netto: ${fmt(parsedPrice)} €`;
+          } else {
+            const prefix = ti === tiers.length - 1 ? `≥${newTier.quantity}` : `${newTier.quantity}`;
+            newTier.label = `${prefix} Ansichten: Netto pro Ansicht: ${fmt(parsedPrice)} €`;
+          }
+          return newTier;
+        });
+        newServices[index].pricingTiers = updatedTiers;
+      }
+
+      // Normalize the displayed unitPrice to consistent format
+      newServices[index].unitPrice = fmt(parsedPrice);
+    }
+    
+    // Recalculate totals inline if quantity or price changed (avoids stale-closure race)
+    if (field === 'quantity' || field === 'unitPrice') {
+      const pricingUpdate = computePricing(newServices);
+      updateProposalData({ services: newServices, pricing: pricingUpdate });
+    } else {
+      updateProposalData({ services: newServices });
+    }
+  };
+
+  // Update a single tier price and propagate to unitPrice + totals
+  const updateTierPrice = (serviceIndex: number, tierIndex: number, newPrice: number) => {
+    if (!proposalData) return;
+    const newServices = [...proposalData.services];
+    const service = { ...newServices[serviceIndex] };
+    const tiers = [...(service.pricingTiers || [])];
+    const tier = { ...tiers[tierIndex] };
+
+    // Update the tier price and regenerate its label
+    tier.price = newPrice;
+    const fmt = (p: number) => p.toFixed(2).replace('.', ',');
+    if (tier.quantity === 1) {
+      tier.label = `1 Ansicht Netto: ${fmt(newPrice)} €`;
+    } else {
+      const prefix = tierIndex === tiers.length - 1 ? `≥${tier.quantity}` : `${tier.quantity}`;
+      tier.label = `${prefix} Ansichten: Netto pro Ansicht: ${fmt(newPrice)} €`;
+    }
+
+    tiers[tierIndex] = tier;
+    service.pricingTiers = tiers;
+    newServices[serviceIndex] = service;
+
+    // If the service's current quantity matches this tier, update unitPrice
+    const currentQty = parseInt(service.quantity) || 0;
+    if (currentQty > 0) {
+      const matchedTier = tiers.find((t: any) => t.quantity === currentQty);
+      const lastTier = tiers[tiers.length - 1];
+      const applicableTier = matchedTier || (currentQty >= lastTier.quantity ? lastTier : null);
+      if (applicableTier) {
+        service.unitPrice = fmt(applicableTier.price);
+        newServices[serviceIndex] = service;
+      }
+    }
+
+    // Compute pricing inline to avoid stale-closure race
+    const pricingUpdate = computePricing(newServices);
+    updateProposalData({ services: newServices, pricing: pricingUpdate });
   };
 
   const updateBulletPoint = (serviceIndex: number, bulletPath: string, newText: string) => {
@@ -484,79 +723,100 @@ export default function PreviewPage() {
     updateProposalData({ services: newServices });
   };
 
-  // Pure function: compute pricing from a given data + services (no state dependency)
-  const computePricing = (data: ProposalData, services: any[]) => {
+  // Derive discount state from proposalData (single source of truth)
+  const discount = proposalData?.pricing?.discount;
+  const hasDiscount = !!(discount && discount.type && (discount.value || discount.amount));
+  const discountType: 'percentage' | 'fixed' = discount?.type || 'fixed';
+  const discountValue: string = discount?.value?.toString() || '0';
+  const discountDescription: string = discount?.description || 'Mengenrabatt';
+
+  // Helper to update discount in proposalData and recalculate
+  const updateDiscount = (updates: Record<string, any>) => {
+    if (!proposalData) return;
+    const currentDiscount = proposalData.pricing?.discount || { type: 'fixed', value: '0', description: 'Mengenrabatt' };
+    const newDiscount = { ...currentDiscount, ...updates };
+    const newPricing = { ...proposalData.pricing, discount: newDiscount };
+    const newData = { ...proposalData, pricing: newPricing };
+    // Recompute totals with new discount
     let subtotal = 0;
-    services.forEach((service: any) => {
+    (newData.services || []).forEach((service: any) => {
       const qty = parseInt(service.quantity) || 0;
-      const price = parseFloat(service.unitPrice?.toString().replace(',', '.')) || 0;
+      const priceStr = service.unitPrice?.toString() || '0';
+      const price = parseFloat(priceStr.replace(/\./g, '').replace(',', '.')) || parseFloat(priceStr) || 0;
       subtotal += qty * price;
     });
-    
+    const dv = parseFloat(newDiscount.value?.toString().replace(',', '.')) || 0;
+    let discountAmt = 0;
+    if (newDiscount.type === 'percentage') {
+      discountAmt = subtotal * (dv / 100);
+    } else {
+      discountAmt = dv;
+    }
+    const totalNet = subtotal - discountAmt;
+    const totalVat = totalNet * 0.19;
+    const totalGross = totalNet + totalVat;
+    const fp = (val: number) => val.toFixed(2).replace('.', ',');
+    newData.pricing = {
+      ...newData.pricing,
+      subtotalNet: fp(subtotal),
+      totalNetPrice: fp(totalNet),
+      totalVat: fp(totalVat),
+      totalGrossPrice: fp(totalGross),
+      discount: { ...newDiscount, amount: fp(discountAmt) }
+    };
+    setProposalData(newData);
+    localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
+    localStorage.setItem('proposalFormData', JSON.stringify(newData));
+  };
+
+  // Pure computation of pricing from a services array — no state reads, no state writes.
+  // Reads discount from proposalData.pricing.discount (single source of truth).
+  const computePricing = (servicesData: any[]) => {
+    let subtotal = 0;
+    servicesData.forEach((service: any) => {
+      const qty = parseInt(service.quantity) || 0;
+      const priceStr = service.unitPrice?.toString() || '0';
+      const price = parseFloat(priceStr.replace(/\./g, '').replace(',', '.')) || parseFloat(priceStr) || 0;
+      subtotal += qty * price;
+    });
+
+    // Read discount from proposalData (single source of truth)
+    const disc = proposalData?.pricing?.discount;
     let discountAmount = 0;
-    if (hasDiscount && discountValue) {
-      const value = parseFloat(discountValue.replace(',', '.'));
-      if (discountType === 'percentage') {
-        discountAmount = subtotal * (value / 100);
+    if (disc && disc.type && disc.value) {
+      const dv = parseFloat(disc.value.toString().replace(',', '.')) || 0;
+      if (disc.type === 'percentage') {
+        discountAmount = subtotal * (dv / 100);
       } else {
-        discountAmount = value;
+        discountAmount = dv;
       }
     }
-    
+
     const totalNet = subtotal - discountAmount;
     const totalVat = totalNet * 0.19;
     const totalGross = totalNet + totalVat;
-    
-    const formatPrice = (val: number) => val.toFixed(2).replace('.', ',');
-    
-    const newPricing: any = {
-      ...data.pricing,
-      subtotalNet: formatPrice(subtotal),
-      totalNetPrice: formatPrice(totalNet),
-      totalVat: formatPrice(totalVat),
-      totalGrossPrice: formatPrice(totalGross)
+    const fp = (val: number) => val.toFixed(2).replace('.', ',');
+
+    const result: any = {
+      ...(proposalData?.pricing || {}),
+      subtotalNet: fp(subtotal),
+      totalNetPrice: fp(totalNet),
+      totalVat: fp(totalVat),
+      totalGrossPrice: fp(totalGross)
     };
-    
-    if (hasDiscount) {
-      newPricing.discount = {
-        type: discountType,
-        value: discountValue,
-        amount: formatPrice(discountAmount),
-        description: discountDescription
-      };
+    if (disc) {
+      result.discount = { ...disc, amount: fp(discountAmount) };
     }
-    
-    return newPricing;
+    return result;
   };
 
-  // Recalculate and update totals based on current or provided services
-  const recalculateTotals = () => {
-    setProposalData(prev => {
-      if (!prev) return prev;
-      
-      // Recalculate line totals for all services
-      const servicesData = prev.services.map((service: any) => {
-        const qty = parseInt(service.quantity) || 0;
-        const price = parseFloat(service.unitPrice?.toString().replace(',', '.')) || 0;
-        return {
-          ...service,
-          lineTotal: (qty * price).toFixed(2).replace('.', ',')
-        };
-      });
-      
-      const newPricing = computePricing(prev, servicesData);
-      const newData = { ...prev, services: servicesData, pricing: newPricing };
-      localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
-      return newData;
-    });
+  // Legacy wrapper for callers that don't pass services inline
+  const recalculateTotals = (services?: any[]) => {
+    if (!proposalData) return;
+    const servicesData = services || proposalData.services;
+    const pricingUpdate = computePricing(servicesData);
+    updateProposalData({ pricing: pricingUpdate });
   };
-
-  // Recalculate totals when discount-related values change
-  useEffect(() => {
-    if (proposalData) {
-      recalculateTotals();
-    }
-  }, [discountType, discountValue, hasDiscount, discountDescription]);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -579,6 +839,39 @@ export default function PreviewPage() {
     return discountAmount.toFixed(2).replace('.', ',');
   };
 
+  const addDiscount = () => {
+    if (hasDiscount) {
+      showNotification('Rabatt bereits hinzugefügt. Bitte bearbeiten Sie den bestehenden Rabatt.', 'info');
+      return;
+    }
+    updateDiscount({ type: 'fixed', value: '0', description: 'Mengenrabatt' });
+  };
+
+  const removeDiscount = () => {
+    if (!proposalData) return;
+    const newPricing = { ...proposalData.pricing };
+    delete newPricing.discount;
+    // Recompute without discount
+    let subtotal = 0;
+    (proposalData.services || []).forEach((service: any) => {
+      const qty = parseInt(service.quantity) || 0;
+      const priceStr = service.unitPrice?.toString() || '0';
+      const price = parseFloat(priceStr.replace(/\./g, '').replace(',', '.')) || parseFloat(priceStr) || 0;
+      subtotal += qty * price;
+    });
+    const totalVat = subtotal * 0.19;
+    const totalGross = subtotal + totalVat;
+    const fp = (val: number) => val.toFixed(2).replace('.', ',');
+    newPricing.subtotalNet = fp(subtotal);
+    newPricing.totalNetPrice = fp(subtotal);
+    newPricing.totalVat = fp(totalVat);
+    newPricing.totalGrossPrice = fp(totalGross);
+    const newData = { ...proposalData, pricing: newPricing };
+    setProposalData(newData);
+    localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
+    localStorage.setItem('proposalFormData', JSON.stringify(newData));
+  };
+
   const handleGenerateProposal = async () => {
     setIsGenerating(true);
 
@@ -597,7 +890,6 @@ export default function PreviewPage() {
         alert(`✅ Angebot erfolgreich erstellt!\n\nAngebotsnummer: ${result.offerNumber}\nKunde: ${result.clientName}\nGesamt: ${result.totalAmount} €`);
         
         if (result.fileUrl) {
-          // Use a hidden link to trigger download instead of window.open
           const a = document.createElement('a');
           a.href = result.fileUrl;
           a.download = result.filename?.split('/').pop() || 'Angebot.docx';
@@ -613,27 +905,6 @@ export default function PreviewPage() {
       alert(`❌ Fehler beim Erstellen des Angebots:\n${error.message}\n\nStellen Sie sicher, dass der Server läuft.`);
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const addDiscount = () => {
-    if (hasDiscount) {
-      showNotification('Rabatt bereits hinzugefügt. Bitte bearbeiten Sie den bestehenden Rabatt.', 'info');
-      return;
-    }
-    setHasDiscount(true);
-    recalculateTotals();
-  };
-
-  const removeDiscount = () => {
-    setHasDiscount(false);
-    setDiscountValue('0');
-    if (proposalData) {
-      const newData = { ...proposalData };
-      delete newData.pricing.discount;
-      setProposalData(newData);
-      localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
-      recalculateTotals();
     }
   };
 
@@ -654,6 +925,7 @@ export default function PreviewPage() {
     target[pathParts[pathParts.length - 1]] = newValue;
     setProposalData(newData);
     localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
+    localStorage.setItem('proposalFormData', JSON.stringify(newData));
   };
 
   const handleEnterKey = (e: React.KeyboardEvent) => {
@@ -661,6 +933,19 @@ export default function PreviewPage() {
       e.preventDefault();
       (e.target as HTMLElement).blur();
     }
+  };
+
+  // --- Discount UI handlers write to proposalData ---
+  const handleDiscountDescriptionBlur = (e: React.FocusEvent<HTMLSpanElement>) => {
+    const newDesc = e.currentTarget.textContent || 'Mengenrabatt';
+    updateDiscount({ description: newDesc });
+  };
+  const handleDiscountTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    updateDiscount({ type: e.target.value });
+  };
+  const handleDiscountValueBlur = (e: React.FocusEvent<HTMLSpanElement>) => {
+    const newValue = e.currentTarget.textContent || '0';
+    updateDiscount({ value: newValue });
   };
 
   if (!proposalData) {
@@ -805,16 +1090,15 @@ export default function PreviewPage() {
               <thead>
                 <tr>
                   <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[8%]">Anz.</th>
-                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[20%]">Bezeichnung</th>
-                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[47%]">Beschreibung</th>
-                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[12%]">Stückpreis netto</th>
-                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[13%]">Gesamt netto</th>
+                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[22%]">Bezeichnung</th>
+                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[55%]">Beschreibung</th>
+                  <th className="border border-gray-800 p-1.5 text-center bg-gray-100 font-bold text-gray-900 w-[15%]">Stückpreis netto</th>
                 </tr>
               </thead>
               <tbody>
                 {proposalData.services.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="border border-gray-800 p-4 text-center text-gray-600 italic">
+                    <td colSpan={4} className="border border-gray-800 p-4 text-center text-gray-600 italic">
                       Keine Dienste ausgewählt.
                     </td>
                   </tr>
@@ -827,16 +1111,18 @@ export default function PreviewPage() {
                     rows.push(
                       <tr key={`service-${index}`}>
                         <td className="border border-gray-800 p-1.5 text-center align-top text-gray-900">
-                          <input
-                            type="number"
-                            value={service.quantity}
-                            onChange={(e) => {
-                              const newQty = parseInt(e.target.value) || 0;
+                          <span
+                            contentEditable
+                            suppressContentEditableWarning
+                            onBlur={(e) => {
+                              const newQty = parseInt(e.currentTarget.textContent || '0');
                               updateService(index, 'quantity', newQty);
                             }}
                             onKeyDown={handleEnterKey}
-                            className="w-full text-center bg-transparent border-none outline-none hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          />
+                            className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                          >
+                            {service.quantity}
+                          </span>
                         </td>
                         <td className="border border-gray-800 p-1.5 align-top text-gray-900">
                           <span
@@ -944,27 +1230,19 @@ export default function PreviewPage() {
                           })()}
                         </td>
                         <td className="border border-gray-800 p-1.5 text-center align-top text-gray-900">
-                          <span className="inline-flex items-center">
-                            <input
-                              type="text"
-                              value={service.unitPrice}
-                              onChange={(e) => {
-                                const raw = e.target.value;
-                                updateService(index, 'unitPrice', raw);
-                              }}
-                              onBlur={(e) => {
-                                // Normalize on blur: replace comma with dot for storage
-                                const normalized = e.target.value.replace(',', '.');
-                                updateService(index, 'unitPrice', normalized);
-                              }}
-                              onKeyDown={handleEnterKey}
-                              className="w-20 text-center bg-transparent border-none outline-none hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
-                            />
-                            {' €'}
+                          <span
+                            contentEditable
+                            suppressContentEditableWarning
+                            onBlur={(e) => {
+                              const newPrice = e.currentTarget.textContent?.replace(',', '.') || '0';
+                              updateService(index, 'unitPrice', newPrice);
+                            }}
+                            onKeyDown={handleEnterKey}
+                            className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                          >
+                            {service.unitPrice}
                           </span>
-                        </td>
-                        <td className="border border-gray-800 p-1.5 text-center align-top text-gray-900 font-semibold">
-                          {service.lineTotal || '0,00'} €
+                          {' €'}
                         </td>
                       </tr>
                     );
@@ -973,27 +1251,51 @@ export default function PreviewPage() {
                     if (service.pricingTiers && service.pricingTiers.length > 0) {
                       // Title row
                       rows.push(
-                        <tr key={`tier-title-${index}`} className="bg-gray-50">
+                        <tr key={`tier-title-${index}`} className="text-gray-900">
                           <td className="border border-gray-800 p-1.5">&nbsp;</td>
                           <td className="border border-gray-800 p-1.5">&nbsp;</td>
                           <td className="border border-gray-800 p-1.5 text-[9pt] font-bold">
                             Preisstaffelung:
                           </td>
                           <td className="border border-gray-800 p-1.5">&nbsp;</td>
-                          <td className="border border-gray-800 p-1.5">&nbsp;</td>
                         </tr>
                       );
                       
-                      // Tier rows
+                      // Tier rows – price is editable
                       service.pricingTiers.forEach((tier: any, tierIndex: number) => {
+                        // Build label parts: text prefix + editable price
+                        const isLast = tierIndex === service.pricingTiers.length - 1;
+                        const qtyPrefix = tier.quantity === 1
+                          ? '1 Ansicht Netto: '
+                          : `${isLast ? '≥' : ''}${tier.quantity} Ansichten: Netto pro Ansicht: `;
+                        const priceFmt = tier.price.toFixed(2).replace('.', ',');
+
                         rows.push(
                           <tr key={`tier-${index}-${tierIndex}`} className="bg-gray-50">
                             <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
                             <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
                             <td className="border border-gray-800 p-1 pl-5 text-[8.5pt] text-gray-900">
-                              {tier.label}
+                              {qtyPrefix}
+                              <span
+                                contentEditable
+                                suppressContentEditableWarning
+                                onBlur={(e) => {
+                                  const raw = e.currentTarget.textContent?.replace(/[^\d,\.]/g, '').replace(',', '.') || '0';
+                                  const parsed = parseFloat(raw);
+                                  if (!isNaN(parsed) && parsed >= 0) {
+                                    updateTierPrice(index, tierIndex, parsed);
+                                  } else {
+                                    // revert display
+                                    e.currentTarget.textContent = priceFmt;
+                                  }
+                                }}
+                                onKeyDown={handleEnterKey}
+                                className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded font-semibold"
+                              >
+                                {priceFmt}
+                              </span>
+                              {' €'}
                             </td>
-                            <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
                             <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
                           </tr>
                         );
@@ -1082,10 +1384,7 @@ export default function PreviewPage() {
                         Rabatt: <span
                           contentEditable
                           suppressContentEditableWarning
-                          onBlur={(e) => {
-                            const newDesc = e.currentTarget.textContent || 'Mengenrabatt';
-                            setDiscountDescription(newDesc);
-                          }}
+                          onBlur={handleDiscountDescriptionBlur}
                           onKeyDown={handleEnterKey}
                           className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                         >
@@ -1097,7 +1396,7 @@ export default function PreviewPage() {
                       <strong className="text-amber-700">
                         <select
                           value={discountType}
-                          onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
+                          onChange={handleDiscountTypeChange}
                           className="px-2 py-1 mr-2 border border-gray-300 rounded text-gray-900 bg-white"
                         >
                           <option value="fixed">EUR</option>
@@ -1106,10 +1405,7 @@ export default function PreviewPage() {
                         - <span
                           contentEditable
                           suppressContentEditableWarning
-                          onBlur={(e) => {
-                            const newValue = e.currentTarget.textContent || '0';
-                            setDiscountValue(newValue);
-                          }}
+                          onBlur={handleDiscountValueBlur}
                           onKeyDown={handleEnterKey}
                           className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
                         >
