@@ -9,6 +9,7 @@ import { Summary } from '@/components/Summary';
 import { AutoSaveIndicator } from '@/components/AutoSaveIndicator';
 import { ALL_SERVICES } from '@/lib/services';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useProposal } from '@/contexts/ProposalContext';
 
 const STORAGE_KEY = 'proposalFormData';
 const AUTOSAVE_INTERVAL = 5000;
@@ -66,6 +67,7 @@ interface ImageData {
 export default function ProposalFormPage() {
   const router = useRouter();
   const { showNotification } = useNotification();
+  const proposal = useProposal();
   const [clientInfo, setClientInfo] = useState<ClientInfo>({
     clientNumber: '',
     companyName: '',
@@ -147,10 +149,14 @@ export default function ProposalFormPage() {
     }));
   }, []);
 
-  // Load saved data on mount
+  // Load saved data on mount — prefer context rawProposalData (set by preview edits)
   useEffect(() => {
-    loadSavedData();
-  }, []);
+    if (proposal.state.rawProposalData) {
+      loadSavedData(proposal.state.rawProposalData);
+    } else {
+      loadSavedData();
+    }
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-save functionality
   useEffect(() => {
@@ -166,13 +172,19 @@ export default function ProposalFormPage() {
     calculateTotals();
   }, [activeServices, serviceQuantities, serviceCustomPrices, serviceBuildingTypes, serviceApartmentSizes, serviceProjectTypes, serviceAreaSizes, discount]);
 
-  const loadSavedData = () => {
+  const loadSavedData = (externalData?: any) => {
     try {
-      const savedData = localStorage.getItem(STORAGE_KEY);
-      if (!savedData) return;
+      let data: any;
 
-      const data = JSON.parse(savedData);
-      console.log('Loading saved form data...');
+      if (externalData) {
+        data = externalData;
+        console.log('Loading form data from shared context (preview edits)...');
+      } else {
+        const savedData = localStorage.getItem(STORAGE_KEY);
+        if (!savedData) return;
+        data = JSON.parse(savedData);
+        console.log('Loading saved form data...');
+      }
 
       if (data.clientInfo) {
         setClientInfo(data.clientInfo);
@@ -727,6 +739,9 @@ export default function ProposalFormPage() {
     }
 
     try {
+      // Share via context (survives in-app navigation without localStorage)
+      proposal.setRawProposalData(data);
+      // Also keep localStorage as fallback
       localStorage.setItem('proposalPreviewData', JSON.stringify(data));
       router.push('/preview');
     } catch (error) {
