@@ -9,6 +9,7 @@ import { Summary } from '@/components/Summary';
 import { AutoSaveIndicator } from '@/components/AutoSaveIndicator';
 import { ALL_SERVICES } from '@/lib/services';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useProposal } from '@/contexts/ProposalContext';
 
 const STORAGE_KEY = 'proposalFormData';
 const AUTOSAVE_INTERVAL = 5000;
@@ -66,6 +67,7 @@ interface ImageData {
 export default function ProposalFormPage() {
   const router = useRouter();
   const { showNotification } = useNotification();
+  const { assembledData, setAssembledData } = useProposal();
   const [clientInfo, setClientInfo] = useState<ClientInfo>({
     clientNumber: '',
     companyName: '',
@@ -168,11 +170,14 @@ export default function ProposalFormPage() {
 
   const loadSavedData = () => {
     try {
+      // Prefer context assembled data (which may contain edits from preview page)
+      // Fall back to localStorage form data
+      const contextData = assembledData;
       const savedData = localStorage.getItem(STORAGE_KEY);
-      if (!savedData) return;
+      const data = contextData || (savedData ? JSON.parse(savedData) : null);
+      if (!data) return;
 
-      const data = JSON.parse(savedData);
-      console.log('Loading saved form data...');
+      console.log('Loading saved form data...', contextData ? '(from shared context)' : '(from localStorage)');
 
       if (data.clientInfo) {
         setClientInfo(data.clientInfo);
@@ -183,7 +188,7 @@ export default function ProposalFormPage() {
         oneWeekLater.setDate(oneWeekLater.getDate() + 7);
         setProjectInfo({
           ...data.projectInfo,
-          offerValidUntil: oneWeekLater.toISOString().split('T')[0]
+          offerValidUntil: data.projectInfo.offerValidUntil || oneWeekLater.toISOString().split('T')[0]
         });
       }
 
@@ -218,7 +223,21 @@ export default function ProposalFormPage() {
         setServiceAreaSizes(areaSizes);
       }
 
-      console.log('✅ Form data restored from localStorage');
+      // Restore discount from assembled data if available
+      if (data.pricing?.discount) {
+        setDiscount({
+          type: data.pricing.discount.type || '',
+          value: parseFloat(String(data.pricing.discount.value).replace(',', '.')) || 0,
+          description: data.pricing.discount.description || ''
+        });
+      }
+
+      // Restore images from assembled data if available
+      if (data.images && data.images.length > 0) {
+        setImages(data.images);
+      }
+
+      console.log('✅ Form data restored');
     } catch (error) {
       console.error('Error loading saved data:', error);
     }
@@ -267,6 +286,10 @@ export default function ProposalFormPage() {
       };
       
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+      
+      // Sync assembled data to shared context for preview page consistency
+      setAssembledData(data);
+      
       console.log('💾 Form data auto-saved');
       setAutoSaveStatus('saved');
       
@@ -727,6 +750,8 @@ export default function ProposalFormPage() {
     }
 
     try {
+      // Write to shared context (single source of truth) and localStorage backup
+      setAssembledData(data);
       localStorage.setItem('proposalPreviewData', JSON.stringify(data));
       router.push('/preview');
     } catch (error) {
@@ -768,6 +793,7 @@ export default function ProposalFormPage() {
       setJsonData('');
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem('proposalPreviewData');
+      setAssembledData(null);
     }
   };
 

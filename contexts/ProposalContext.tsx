@@ -128,6 +128,11 @@ interface ProposalContextType {
   
   // Auto-save status
   autoSaveStatus: 'idle' | 'saving' | 'saved';
+
+  // Shared assembled proposal data (used by both form and preview pages)
+  assembledData: any | null;
+  setAssembledData: (data: any) => void;
+  updateAssembledData: (updates: Partial<any>) => void;
 }
 
 const ProposalContext = createContext<ProposalContextType | undefined>(undefined);
@@ -182,6 +187,43 @@ function getDefaultOfferValidDate(): string {
 export function ProposalProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ProposalState>(createInitialState());
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  // Shared assembled proposal data — single source of truth for form ↔ preview
+  const [assembledData, setAssembledDataState] = useState<any | null>(null);
+
+  // Load assembled data from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('proposalPreviewData');
+      if (saved) {
+        setAssembledDataState(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error('Error loading assembled proposal data:', e);
+    }
+  }, []);
+
+  // Persist assembled data to localStorage whenever it changes
+  useEffect(() => {
+    if (assembledData) {
+      try {
+        localStorage.setItem('proposalPreviewData', JSON.stringify(assembledData));
+      } catch (e) {
+        console.error('Error persisting assembled proposal data:', e);
+      }
+    }
+  }, [assembledData]);
+
+  const setAssembledData = useCallback((data: any) => {
+    setAssembledDataState(data);
+  }, []);
+
+  const updateAssembledData = useCallback((updates: Partial<any>) => {
+    setAssembledDataState((prev: any) => {
+      if (!prev) return updates;
+      return { ...prev, ...updates };
+    });
+  }, []);
 
   // Load from storage on mount
   useEffect(() => {
@@ -463,8 +505,10 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
 
   const clearStorage = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem('proposalPreviewData');
     sessionStorage.removeItem('proposalPreviewData');
     setState(createInitialState());
+    setAssembledDataState(null);
     console.log('🗑️ Proposal data cleared');
   }, []);
 
@@ -523,7 +567,10 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
     clearStorage,
     isValid,
     getValidationErrors,
-    autoSaveStatus
+    autoSaveStatus,
+    assembledData,
+    setAssembledData,
+    updateAssembledData
   };
 
   return (

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useProposal } from '@/contexts/ProposalContext';
 import serviceDescriptions from '@/lib/service_description';
 
 interface ProposalData {
@@ -27,12 +28,10 @@ interface ServiceDescription {
 export default function PreviewPage() {
   const router = useRouter();
   const { showNotification } = useNotification();
+  const { assembledData, setAssembledData } = useProposal();
   const [proposalData, setProposalData] = useState<ProposalData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [hasDiscount, setHasDiscount] = useState(false);
-  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('fixed');
-  const [discountValue, setDiscountValue] = useState('0');
-  const [discountDescription, setDiscountDescription] = useState('Mengenrabatt');
+  // Discount info is derived from proposalData.pricing.discount (single source of truth)
   const [showBulletModal, setShowBulletModal] = useState(false);
   const [bulletModalServiceIndex, setBulletModalServiceIndex] = useState<number | null>(null);
   const [bulletInputText, setBulletInputText] = useState('');
@@ -106,18 +105,23 @@ export default function PreviewPage() {
   }, []);
 
   const loadProposalData = () => {
-    let dataStr = localStorage.getItem('proposalPreviewData');
-    if (!dataStr) {
-      dataStr = sessionStorage.getItem('proposalPreviewData');
-    }
+    // Read from shared context first, fall back to localStorage/sessionStorage
+    let data = assembledData;
+    
+    if (!data) {
+      let dataStr = localStorage.getItem('proposalPreviewData');
+      if (!dataStr) {
+        dataStr = sessionStorage.getItem('proposalPreviewData');
+      }
 
-    if (!dataStr) {
-      showNotification('Keine Angebotsdaten gefunden. Bitte füllen Sie zuerst das Formular aus.', 'error');
-      router.push('/');
-      return;
-    }
+      if (!dataStr) {
+        showNotification('Keine Angebotsdaten gefunden. Bitte füllen Sie zuerst das Formular aus.', 'error');
+        router.push('/');
+        return;
+      }
 
-    const data = JSON.parse(dataStr);
+      data = JSON.parse(dataStr);
+    }
     
     // Initialize modifiedDefaults for all services if not present
     if (data.services && data.services.length > 0) {
@@ -188,19 +192,54 @@ export default function PreviewPage() {
     
     setProposalData(data);
 
-    // Check if discount exists
-    if (data.pricing?.discount && (data.pricing.discount.value || data.pricing.discount.amount)) {
-      setHasDiscount(true);
-      setDiscountType(data.pricing.discount.type || 'fixed');
-      setDiscountValue(data.pricing.discount.value?.toString() || data.pricing.discount.amount || '0');
-      setDiscountDescription(data.pricing.discount.description || 'Mengenrabatt');
+  };
+
+  // Pure function: recalculate all pricing from current data
+  const computePricing = (data: ProposalData): ProposalData => {
+    const services = data.services || [];
+    let subtotal = 0;
+    services.forEach((service: any) => {
+      const qty = parseInt(service.quantity) || 0;
+      const price = parseFloat(service.unitPrice?.toString().replace(',', '.')) || 0;
+      subtotal += qty * price;
+    });
+
+    let discountAmount = 0;
+    const discount = data.pricing?.discount;
+    if (discount && discount.value) {
+      const value = parseFloat(discount.value.toString().replace(',', '.'));
+      if (discount.type === 'percentage') {
+        discountAmount = subtotal * (value / 100);
+      } else {
+        discountAmount = value;
+      }
     }
+
+    const totalNet = subtotal - discountAmount;
+    const totalVat = totalNet * 0.19;
+    const totalGross = totalNet + totalVat;
+    const fmt = (val: number) => val.toFixed(2).replace('.', ',');
+
+    return {
+      ...data,
+      pricing: {
+        ...data.pricing,
+        subtotalNet: fmt(subtotal),
+        totalNetPrice: fmt(totalNet),
+        totalVat: fmt(totalVat),
+        totalGrossPrice: fmt(totalGross),
+        discount: discount ? { ...discount, amount: fmt(discountAmount) } : undefined
+      }
+    };
   };
 
   const updateProposalData = (updates: Partial<ProposalData>) => {
     if (!proposalData) return;
-    const newData = { ...proposalData, ...updates };
+    const merged = { ...proposalData, ...updates };
+    const newData = computePricing(merged);
     setProposalData(newData);
+    // Sync to shared context so the form page stays consistent
+    setAssembledData(newData);
     localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
   };
 
@@ -209,11 +248,6 @@ export default function PreviewPage() {
     const newServices = [...proposalData.services];
     newServices[index] = { ...newServices[index], [field]: value };
     updateProposalData({ services: newServices });
-    
-    // Recalculate totals if quantity or price changed
-    if (field === 'quantity' || field === 'unitPrice') {
-      recalculateTotals(newServices);
-    }
   };
 
   const updateBulletPoint = (serviceIndex: number, bulletPath: string, newText: string) => {
@@ -447,58 +481,7 @@ export default function PreviewPage() {
     updateProposalData({ services: newServices });
   };
 
-  const recalculateTotals = (services?: any[]) => {
-    if (!proposalData) return;
-    const servicesData = services || proposalData.services;
-    
-    let subtotal = 0;
-    servicesData.forEach((service: any) => {
-      const qty = parseInt(service.quantity) || 0;
-      const price = parseFloat(service.unitPrice?.toString().replace(',', '.')) || 0;
-      subtotal += qty * price;
-    });
-    
-    let discountAmount = 0;
-    if (hasDiscount && discountValue) {
-      const value = parseFloat(discountValue.replace(',', '.'));
-      if (discountType === 'percentage') {
-        discountAmount = subtotal * (value / 100);
-      } else {
-        discountAmount = value;
-      }
-    }
-    
-    const totalNet = subtotal - discountAmount;
-    const totalVat = totalNet * 0.19;
-    const totalGross = totalNet + totalVat;
-    
-    const formatPrice = (val: number) => val.toFixed(2).replace('.', ',');
-    
-    const newPricing = {
-      ...proposalData.pricing,
-      subtotalNet: formatPrice(subtotal),
-      totalNetPrice: formatPrice(totalNet),
-      totalVat: formatPrice(totalVat),
-      totalGrossPrice: formatPrice(totalGross)
-    };
-    
-    if (hasDiscount) {
-      newPricing.discount = {
-        type: discountType,
-        value: discountValue,
-        amount: formatPrice(discountAmount),
-        description: discountDescription
-      };
-    }
-    
-    updateProposalData({ pricing: newPricing });
-  };
-
-  useEffect(() => {
-    if (proposalData && hasDiscount) {
-      recalculateTotals();
-    }
-  }, [discountType, discountValue, hasDiscount, discountDescription]);
+  // Pricing is auto-computed by computePricing inside updateProposalData
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -513,9 +496,10 @@ export default function PreviewPage() {
   const calculatePercentageDiscount = () => {
     if (!proposalData) return '0,00';
     const subtotalText = proposalData.pricing.subtotalNet || '0';
-    const subtotal = parseFloat(subtotalText.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+    const subtotal = parseFloat(subtotalText.toString().replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
     
-    const percentage = parseFloat(discountValue.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+    const discountVal = proposalData.pricing?.discount?.value?.toString() || '0';
+    const percentage = parseFloat(discountVal.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
     
     const discountAmount = (subtotal * percentage / 100);
     return discountAmount.toFixed(2).replace('.', ',');
@@ -559,24 +543,23 @@ export default function PreviewPage() {
   };
 
   const addDiscount = () => {
-    if (hasDiscount) {
+    if (proposalData?.pricing?.discount) {
       showNotification('Rabatt bereits hinzugefügt. Bitte bearbeiten Sie den bestehenden Rabatt.', 'info');
       return;
     }
-    setHasDiscount(true);
-    recalculateTotals();
+    updateProposalData({
+      pricing: {
+        ...proposalData!.pricing,
+        discount: { type: 'fixed', value: '0', description: 'Mengenrabatt', amount: '0,00' }
+      }
+    });
   };
 
   const removeDiscount = () => {
-    setHasDiscount(false);
-    setDiscountValue('0');
-    if (proposalData) {
-      const newData = { ...proposalData };
-      delete newData.pricing.discount;
-      setProposalData(newData);
-      localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
-      recalculateTotals();
-    }
+    if (!proposalData) return;
+    const newPricing = { ...proposalData.pricing };
+    delete newPricing.discount;
+    updateProposalData({ pricing: newPricing });
   };
 
   const handleEditableBlur = (path: string, e: React.FocusEvent<HTMLSpanElement>) => {
@@ -585,17 +568,14 @@ export default function PreviewPage() {
     
     if (!proposalData) return;
     
-    const newData = { ...proposalData };
-    let target: any = newData;
-    
-    for (let i = 0; i < pathParts.length - 1; i++) {
-      if (!target[pathParts[i]]) target[pathParts[i]] = {};
-      target = target[pathParts[i]];
-    }
-    
-    target[pathParts[pathParts.length - 1]] = newValue;
-    setProposalData(newData);
-    localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
+    // Build a partial update by walking the path
+    const buildUpdate = (parts: string[], value: any): any => {
+      if (parts.length === 1) return { [parts[0]]: value };
+      const key = parts[0];
+      return { [key]: { ...(proposalData as any)[key], ...buildUpdate(parts.slice(1), value) } };
+    };
+
+    updateProposalData(buildUpdate(pathParts, newValue));
   };
 
   const handleEnterKey = (e: React.KeyboardEvent) => {
@@ -619,10 +599,14 @@ export default function PreviewPage() {
   const hasVirtualTour = proposalData.services?.some((s: any) => s.name?.includes('360° Tour'));
 
   // Recursive bullet renderer component (Display Only)
+  // Level 0: ● (disc), Level 1: ○ (circle), Level 2+: ■ (square)
+  const getListStyleClass = (lvl: number) =>
+    lvl === 0 ? 'list-disc' : lvl === 1 ? 'list-[circle]' : 'list-[square]';
+
   const BulletItem = ({ item, level }: any) => {
     const text = typeof item === 'string' ? item : item.text;
     const children = typeof item === 'object' ? item.children : null;
-    const listStyleClass = level === 0 ? 'list-disc' : 'list-[circle]';
+    const childLevel = level + 1;
     
     return (
       <li className="mb-0.5 leading-tight">
@@ -630,12 +614,12 @@ export default function PreviewPage() {
           {text}
         </span>
         {children && children.length > 0 && (
-          <ul className={`${listStyleClass} ml-5 mt-0.5`}>
+          <ul className={`${getListStyleClass(childLevel)} ml-5 mt-0.5`}>
             {children.map((child: any, i: number) => (
               <BulletItem
                 key={i}
                 item={child}
-                level={level + 1}
+                level={childLevel}
               />
             ))}
           </ul>
@@ -911,7 +895,7 @@ export default function PreviewPage() {
                         <tr key={`tier-title-${index}`} className="bg-gray-50">
                           <td className="border border-gray-800 p-1.5">&nbsp;</td>
                           <td className="border border-gray-800 p-1.5">&nbsp;</td>
-                          <td className="border border-gray-800 p-1.5 text-[9pt] font-bold">
+                          <td className="border border-gray-800 p-1.5 text-[9pt] font-bold text-black">
                             Preisstaffelung:
                           </td>
                           <td className="border border-gray-800 p-1.5">&nbsp;</td>
@@ -1008,7 +992,7 @@ export default function PreviewPage() {
                   </td>
                 </tr>
                 
-                {hasDiscount && (
+                {proposalData.pricing?.discount && (
                   <tr className="border border-gray-800 bg-yellow-50">
                     <td className="border border-gray-800 p-1.5 text-gray-900">
                       <strong>
@@ -1017,20 +1001,32 @@ export default function PreviewPage() {
                           suppressContentEditableWarning
                           onBlur={(e) => {
                             const newDesc = e.currentTarget.textContent || 'Mengenrabatt';
-                            setDiscountDescription(newDesc);
+                            updateProposalData({
+                              pricing: {
+                                ...proposalData.pricing,
+                                discount: { ...proposalData.pricing.discount!, description: newDesc }
+                              }
+                            });
                           }}
                           onKeyDown={handleEnterKey}
                           className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                         >
-                          {discountDescription}
+                          {proposalData.pricing.discount.description || 'Mengenrabatt'}
                         </span>
                       </strong>
                     </td>
                     <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                       <strong className="text-amber-700">
                         <select
-                          value={discountType}
-                          onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
+                          value={proposalData.pricing.discount.type || 'fixed'}
+                          onChange={(e) => {
+                            updateProposalData({
+                              pricing: {
+                                ...proposalData.pricing,
+                                discount: { ...proposalData.pricing.discount!, type: e.target.value as 'percentage' | 'fixed' }
+                              }
+                            });
+                          }}
                           className="px-2 py-1 mr-2 border border-gray-300 rounded text-gray-900 bg-white"
                         >
                           <option value="fixed">EUR</option>
@@ -1041,15 +1037,20 @@ export default function PreviewPage() {
                           suppressContentEditableWarning
                           onBlur={(e) => {
                             const newValue = e.currentTarget.textContent || '0';
-                            setDiscountValue(newValue);
+                            updateProposalData({
+                              pricing: {
+                                ...proposalData.pricing,
+                                discount: { ...proposalData.pricing.discount!, value: newValue }
+                              }
+                            });
                           }}
                           onKeyDown={handleEnterKey}
                           className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
                         >
-                          {discountValue}
+                          {proposalData.pricing.discount.value}
                         </span>
-                        {discountType === 'percentage' ? '% ' : ' €'}
-                        {discountType === 'percentage' && (
+                        {proposalData.pricing.discount.type === 'percentage' ? '% ' : ' €'}
+                        {proposalData.pricing.discount.type === 'percentage' && (
                           <span className="text-gray-600 text-[9pt] ml-1">
                             ({calculatePercentageDiscount()} €)
                           </span>
@@ -1124,7 +1125,7 @@ export default function PreviewPage() {
               </tbody>
             </table>
 
-            {!hasDiscount && (
+            {!proposalData.pricing?.discount && (
               <button
                 onClick={addDiscount}
                 className="mt-2.5 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-sm"
