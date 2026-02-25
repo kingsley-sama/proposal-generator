@@ -84,6 +84,8 @@ export interface ProposalState {
   pricing: PricingData;
   signature: SignatureData;
   terms?: any;
+  /** Shared raw proposal data between form and preview pages */
+  rawProposalData: any | null;
 }
 
 interface ProposalContextType {
@@ -117,6 +119,10 @@ interface ProposalContextType {
   // Signature
   updateSignature: (updates: Partial<SignatureData>) => void;
   
+  // Shared raw proposal data (bridge between form and preview)
+  setRawProposalData: (data: any) => void;
+  updateRawProposalData: (updates: Partial<any>) => void;
+
   // Persistence
   saveToStorage: () => void;
   loadFromStorage: () => void;
@@ -170,7 +176,8 @@ const createInitialState = (): ProposalState => ({
   },
   signature: {
     signatureName: 'Christopher Helm'
-  }
+  },
+  rawProposalData: null
 });
 
 function getDefaultOfferValidDate(): string {
@@ -400,6 +407,20 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  // Shared raw proposal data
+  const setRawProposalData = useCallback((data: any) => {
+    setState(prev => ({ ...prev, rawProposalData: data }));
+  }, []);
+
+  const updateRawProposalData = useCallback((updates: Partial<any>) => {
+    setState(prev => ({
+      ...prev,
+      rawProposalData: prev.rawProposalData
+        ? { ...prev.rawProposalData, ...updates }
+        : updates
+    }));
+  }, []);
+
   // Signature
   const updateSignature = useCallback((updates: Partial<SignatureData>) => {
     setState(prev => ({
@@ -430,6 +451,10 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
       
       // Also save full data (with images) to sessionStorage for preview
       sessionStorage.setItem('proposalPreviewData', JSON.stringify(state));
+      // Save rawProposalData to sessionStorage for cross-tab fallback
+      if (state.rawProposalData) {
+        sessionStorage.setItem('rawProposalData', JSON.stringify(state.rawProposalData));
+      }
       
       console.log('💾 Proposal data auto-saved');
       setAutoSaveStatus('saved');
@@ -455,6 +480,11 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
       console.log('📂 Loading saved proposal data...');
       
       setState(data);
+      // Also restore rawProposalData from sessionStorage if available
+      const rawData = sessionStorage.getItem('rawProposalData');
+      if (rawData) {
+        setState(prev => ({ ...prev, rawProposalData: JSON.parse(rawData) }));
+      }
       console.log('✅ Proposal data restored from localStorage');
     } catch (error) {
       console.error('Error loading saved data:', error);
@@ -518,6 +548,8 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
     removeDiscount,
     recalculatePricing,
     updateSignature,
+    setRawProposalData,
+    updateRawProposalData,
     saveToStorage,
     loadFromStorage,
     clearStorage,

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNotification } from '@/contexts/NotificationContext';
+import { useProposal } from '@/contexts/ProposalContext';
 import serviceDescriptions from '@/lib/service_description';
 
 interface ProposalData {
@@ -27,6 +28,7 @@ interface ServiceDescription {
 export default function PreviewPage() {
   const router = useRouter();
   const { showNotification } = useNotification();
+  const proposal = useProposal();
   const [proposalData, setProposalData] = useState<ProposalData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasDiscount, setHasDiscount] = useState(false);
@@ -106,18 +108,26 @@ export default function PreviewPage() {
   }, []);
 
   const loadProposalData = () => {
-    let dataStr = localStorage.getItem('proposalPreviewData');
-    if (!dataStr) {
-      dataStr = sessionStorage.getItem('proposalPreviewData');
-    }
+    // Prefer context rawProposalData (set by form page, kept in-memory across navigation)
+    // Fall back to localStorage for direct URL access or page refresh
+    let dataStr: string | null = null;
+    const contextData = proposal.state.rawProposalData;
 
-    if (!dataStr) {
-      showNotification('Keine Angebotsdaten gefunden. Bitte füllen Sie zuerst das Formular aus.', 'error');
-      router.push('/');
-      return;
+    let data: any;
+    if (contextData) {
+      data = contextData;
+    } else {
+      dataStr = localStorage.getItem('proposalPreviewData');
+      if (!dataStr) {
+        dataStr = sessionStorage.getItem('proposalPreviewData');
+      }
+      if (!dataStr) {
+        showNotification('Keine Angebotsdaten gefunden. Bitte füllen Sie zuerst das Formular aus.', 'error');
+        router.push('/');
+        return;
+      }
+      data = JSON.parse(dataStr);
     }
-
-    const data = JSON.parse(dataStr);
     
     // Initialize modifiedDefaults for all services if not present
     if (data.services && data.services.length > 0) {
@@ -201,6 +211,8 @@ export default function PreviewPage() {
     if (!proposalData) return;
     const newData = { ...proposalData, ...updates };
     setProposalData(newData);
+    // Sync to context so form page reflects changes on back-navigation
+    proposal.updateRawProposalData(updates);
     localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
   };
 
@@ -208,11 +220,14 @@ export default function PreviewPage() {
     if (!proposalData) return;
     const newServices = [...proposalData.services];
     newServices[index] = { ...newServices[index], [field]: value };
-    updateProposalData({ services: newServices });
-    
-    // Recalculate totals if quantity or price changed
+
     if (field === 'quantity' || field === 'unitPrice') {
-      recalculateTotals(newServices);
+      // Compute pricing using the already-updated newServices so both
+      // services and pricing land in one setState call (no stale-closure race).
+      const newPricing = computePricing(newServices);
+      updateProposalData({ services: newServices, pricing: newPricing });
+    } else {
+      updateProposalData({ services: newServices });
     }
   };
 
@@ -447,17 +462,14 @@ export default function PreviewPage() {
     updateProposalData({ services: newServices });
   };
 
-  const recalculateTotals = (services?: any[]) => {
-    if (!proposalData) return;
-    const servicesData = services || proposalData.services;
-    
+  const computePricing = (servicesData: any[]) => {
     let subtotal = 0;
     servicesData.forEach((service: any) => {
       const qty = parseInt(service.quantity) || 0;
       const price = parseFloat(service.unitPrice?.toString().replace(',', '.')) || 0;
       subtotal += qty * price;
     });
-    
+
     let discountAmount = 0;
     if (hasDiscount && discountValue) {
       const value = parseFloat(discountValue.replace(',', '.'));
@@ -467,30 +479,34 @@ export default function PreviewPage() {
         discountAmount = value;
       }
     }
-    
+
     const totalNet = subtotal - discountAmount;
     const totalVat = totalNet * 0.19;
     const totalGross = totalNet + totalVat;
-    
-    const formatPrice = (val: number) => val.toFixed(2).replace('.', ',');
-    
-    const newPricing = {
-      ...proposalData.pricing,
-      subtotalNet: formatPrice(subtotal),
-      totalNetPrice: formatPrice(totalNet),
-      totalVat: formatPrice(totalVat),
-      totalGrossPrice: formatPrice(totalGross)
+    const fmt = (val: number) => val.toFixed(2).replace('.', ',');
+
+    const pricing: any = {
+      ...(proposalData?.pricing || {}),
+      subtotalNet: fmt(subtotal),
+      totalNetPrice: fmt(totalNet),
+      totalVat: fmt(totalVat),
+      totalGrossPrice: fmt(totalGross),
     };
-    
     if (hasDiscount) {
-      newPricing.discount = {
+      pricing.discount = {
         type: discountType,
         value: discountValue,
-        amount: formatPrice(discountAmount),
-        description: discountDescription
+        amount: fmt(discountAmount),
+        description: discountDescription,
       };
     }
-    
+    return pricing;
+  };
+
+  const recalculateTotals = (services?: any[]) => {
+    if (!proposalData) return;
+    const servicesData = services || proposalData.services;
+    const newPricing = computePricing(servicesData);
     updateProposalData({ pricing: newPricing });
   };
 
@@ -773,6 +789,7 @@ export default function PreviewPage() {
                       <tr key={`service-${index}`}>
                         <td className="border border-gray-800 p-1.5 text-center align-top text-gray-900">
                           <span
+                            key={`qty-${index}-${service.quantity}`}
                             contentEditable
                             suppressContentEditableWarning
                             onBlur={(e) => {
@@ -787,6 +804,7 @@ export default function PreviewPage() {
                         </td>
                         <td className="border border-gray-800 p-1.5 align-top text-gray-900">
                           <span
+                            key={`name-${index}-${service.name}`}
                             contentEditable
                             suppressContentEditableWarning
                             onBlur={(e) => updateService(index, 'name', e.currentTarget.textContent || '')}
@@ -798,6 +816,7 @@ export default function PreviewPage() {
                           {service.sub_name && (
                             <div className="mt-0.5">
                               <span
+                                key={`subname-${index}-${service.sub_name}`}
                                 contentEditable
                                 suppressContentEditableWarning
                                 onBlur={(e) => updateService(index, 'sub_name', e.currentTarget.textContent || '')}
@@ -892,6 +911,7 @@ export default function PreviewPage() {
                         </td>
                         <td className="border border-gray-800 p-1.5 text-center align-top text-gray-900">
                           <span
+                            key={`price-${index}-${service.unitPrice}`}
                             contentEditable
                             suppressContentEditableWarning
                             onBlur={(e) => {
@@ -912,10 +932,10 @@ export default function PreviewPage() {
                     if (service.pricingTiers && service.pricingTiers.length > 0) {
                       // Title row
                       rows.push(
-                        <tr key={`tier-title-${index}`} className="bg-gray-50">
+                        <tr key={`tier-title-${index}`} className="text-gray-900 ">
                           <td className="border border-gray-800 p-1.5">&nbsp;</td>
                           <td className="border border-gray-800 p-1.5">&nbsp;</td>
-                          <td className="border border-gray-800 p-1.5 text-[9pt] font-bold">
+                          <td className="border border-gray-800 p-1.5 text-[9pt]">
                             Preisstaffelung:
                           </td>
                           <td className="border border-gray-800 p-1.5">&nbsp;</td>
@@ -1000,6 +1020,7 @@ export default function PreviewPage() {
                   <td className="border border-gray-800 p-1.5 w-[30%] text-center text-gray-900">
                     <strong>
                       <span
+                        key={`subtotal-${proposalData.pricing.subtotalNet}`}
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.subtotalNet', e)}
@@ -1017,6 +1038,7 @@ export default function PreviewPage() {
                     <td className="border border-gray-800 p-1.5 text-gray-900">
                       <strong>
                         Rabatt: <span
+                          key={`disc-desc-${discountDescription}`}
                           contentEditable
                           suppressContentEditableWarning
                           onBlur={(e) => {
@@ -1041,6 +1063,7 @@ export default function PreviewPage() {
                           <option value="percentage">%</option>
                         </select>
                         - <span
+                          key={`disc-val-${discountValue}`}
                           contentEditable
                           suppressContentEditableWarning
                           onBlur={(e) => {
@@ -1076,6 +1099,7 @@ export default function PreviewPage() {
                   <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                     <strong>
                       <span
+                        key={`totalnet-${proposalData.pricing.totalNetPrice}`}
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.totalNetPrice', e)}
@@ -1095,6 +1119,7 @@ export default function PreviewPage() {
                   <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                     <strong>
                       <span
+                        key={`vat-${proposalData.pricing.totalVat}`}
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.totalVat', e)}
@@ -1114,6 +1139,7 @@ export default function PreviewPage() {
                   <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                     <strong>
                       <span
+                        key={`gross-${proposalData.pricing.totalGrossPrice}`}
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.totalGrossPrice', e)}
@@ -1140,6 +1166,7 @@ export default function PreviewPage() {
             <p className="mt-8 mb-5 text-gray-900">
               <strong>
                 <span
+                  key={`validuntiltext-${proposalData.terms?.validUntilText}`}
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.validUntilText', e)}
@@ -1149,6 +1176,7 @@ export default function PreviewPage() {
                   {proposalData.terms?.validUntilText || 'Dieses Angebot ist gültig bis:'}
                 </span>{' '}
                 <span
+                  key={`offervalid-${proposalData.projectInfo.offerValidUntil}`}
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('projectInfo.offerValidUntil', e)}
@@ -1165,6 +1193,7 @@ export default function PreviewPage() {
               <p className="mb-2">
                 <strong>Lieferweg:</strong>{' '}
                 <span
+                  key={`deliverymethod-${proposalData.terms?.deliveryMethod}`}
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.deliveryMethod', e)}
@@ -1177,6 +1206,7 @@ export default function PreviewPage() {
               <p className="mb-2">
                 <strong>Voraussichtl. Leistungsdatum:</strong>{' '}
                 <span
+                  key={`deliverytime-${proposalData.projectInfo.deliveryTime}`}
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => {
@@ -1189,6 +1219,7 @@ export default function PreviewPage() {
                 </span>
                 {' Arbeitstage '}
                 <span
+                  key={`deliverydaystext-${proposalData.pricing?.totalNetPrice}`}
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.deliveryDaysText', e)}
@@ -1214,6 +1245,7 @@ export default function PreviewPage() {
               <p>
                 <strong>Zahlungsbedingungen:</strong>{' '}
                 <span
+                  key={`paymentterms-${proposalData.pricing?.totalNetPrice}`}
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.paymentTerms', e)}
@@ -1238,6 +1270,7 @@ export default function PreviewPage() {
 
             <p className="mb-5 italic text-gray-900">
               <span
+                key={`closinggreeting-${proposalData.terms?.closingGreeting}`}
                 contentEditable
                 suppressContentEditableWarning
                 onBlur={(e) => handleEditableBlur('terms.closingGreeting', e)}
@@ -1248,6 +1281,7 @@ export default function PreviewPage() {
               </span>
               <br />
               <span
+                key={`signame-${proposalData.signature.signatureName}`}
                 contentEditable
                 suppressContentEditableWarning
                 onBlur={(e) => handleEditableBlur('signature.signatureName', e)}
@@ -1263,6 +1297,7 @@ export default function PreviewPage() {
               <p><strong>Hinweise:</strong></p>
               <p>
                 ⁽¹⁾ <span
+                  key="note1"
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.note1', e)}
@@ -1274,6 +1309,7 @@ export default function PreviewPage() {
               </p>
               <p>
                 ⁽²⁾ <span
+                  key="note2"
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.note2', e)}
