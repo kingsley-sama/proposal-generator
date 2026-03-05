@@ -113,7 +113,7 @@ export const ALL_SERVICES = [
   },
   {
     id: '360-interior',
-    name: '360° Tour Innen (Virtuelle Tour)',
+    name: '360° Tour Innen',
     hasBuildingType: false,
     hasApartmentSize: true,
     hasProjectType: false

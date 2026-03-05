@@ -92,8 +92,56 @@ export default function PreviewPage() {
       text = text.replace(/(\d+)\s+Digital Home Staging Fotos/g, '$1 Digital Home Staging Foto');
       text = text.replace(/(\d+)\s+Digitale Renovierungsfotos/g, '$1 Digitales Renovierungsfoto');
       text = text.replace(/Bodenperspektiven/g, 'Bodenperspektive');
+    } else {
+      // Plural: "Geliefert wird X ..." → "Geliefert werden X ..."
+      text = text.replace(/Geliefert wird (\d+)/i, 'Geliefert werden $1');
+      // Singular nouns → plural
+      text = text.replace(/gerenderte Außenansicht(?!en)/g, 'gerenderte Außenansichten');
+      text = text.replace(/gerenderte Innenansicht(?!en)/g, 'gerenderte Innenansichten');
+      text = text.replace(/gerenderte Ansicht(?!en)/g, 'gerenderte Ansichten');
+      text = text.replace(/(\d+)\s+3D-Grundriss(?!e)(?!\s*Spezial)/g, '$1 3D-Grundrisse');
+      text = text.replace(/(\d+)\s+3D-Grundriss Spezial(?!.*e)/g, '$1 3D-Grundrisse Spezial');
+      text = text.replace(/(\d+)\s+2D-Grundriss(?!e)/g, '$1 2D-Grundrisse');
+      text = text.replace(/(\d+)\s+3D-Geschossansicht(?!en)/g, '$1 3D-Geschossansichten');
+      text = text.replace(/(\d+)\s+2D-Geschossansicht(?!en)/g, '$1 2D-Geschossansichten');
+      text = text.replace(/(\d+)\s+2D-Tiefgaragenplan(?!.*ä)/g, '$1 2D-Tiefgaragenpläne');
+      text = text.replace(/(\d+)\s+Digital Home Staging Foto(?!s)/g, '$1 Digital Home Staging Fotos');
+      text = text.replace(/(\d+)\s+Digitales Renovierungsfoto(?!s)/g, '$1 Digitale Renovierungsfotos');
+      text = text.replace(/Bodenperspektive(?!n)/g, 'Bodenperspektiven');
     }
     return text;
+  };
+
+  // Helper: update quantity numbers and singular/plural forms in already-resolved descriptions
+  // Replaces any digit(s) that appear right after "Geliefert werden/wird" with the current qty,
+  // and also replaces leftover {{QUANTITY}} placeholders.
+  const syncQuantityInDescriptions = (items: any[], quantity: number): any[] => {
+    return items.map(item => {
+      if (typeof item === 'string') {
+        let text = item;
+        text = text.replace(/\{\{QUANTITY\}\}/g, quantity.toString());
+        // Update the number after "Geliefert werden/wird"
+        text = text.replace(/(Geliefert (?:werden|wird)\s+)\d+/i, `$1${quantity}`);
+        // Update "Xx gerenderte" pattern (e.g. "3x gerenderte")
+        text = text.replace(/\d+x\s+gerenderte/i, `${quantity}x gerenderte`);
+        // Update quantity in "X 3D-Grundrisse" etc.
+        text = text.replace(/\d+(\s+(?:3D-Grundriss|2D-Grundriss|3D-Geschossansicht|2D-Geschossansicht|2D-Tiefgaragen|Digital Home Staging|Digitale Renovierung))/g, `${quantity}$1`);
+        text = adjustSingularPlural(text, quantity);
+        return text;
+      }
+      let newItem = { ...item };
+      if (newItem.text) {
+        newItem.text = newItem.text.replace(/\{\{QUANTITY\}\}/g, quantity.toString());
+        newItem.text = newItem.text.replace(/(Geliefert (?:werden|wird)\s+)\d+/i, `$1${quantity}`);
+        newItem.text = newItem.text.replace(/\d+x\s+gerenderte/i, `${quantity}x gerenderte`);
+        newItem.text = newItem.text.replace(/\d+(\s+(?:3D-Grundriss|2D-Grundriss|3D-Geschossansicht|2D-Geschossansicht|2D-Tiefgaragen|Digital Home Staging|Digitale Renovierung))/g, `${quantity}$1`);
+        newItem.text = adjustSingularPlural(newItem.text, quantity);
+      }
+      if (newItem.children && newItem.children.length > 0) {
+        newItem.children = syncQuantityInDescriptions(newItem.children, quantity);
+      }
+      return newItem;
+    });
   };
 
   // Helper to replace placeholders like {{QUANTITY}} or {{PROJECT_NAME}} in description text
@@ -174,6 +222,12 @@ export default function PreviewPage() {
 
             service.modifiedDefaults = defaults;
           }
+        } else {
+          // modifiedDefaults already exist (from form page or localStorage) –
+          // re-sync the quantity number and singular/plural forms so the
+          // description always matches the current quantity.
+          const qty = typeof service.quantity === 'string' ? parseInt(service.quantity) || 1 : (service.quantity || 1);
+          service.modifiedDefaults = syncQuantityInDescriptions(service.modifiedDefaults, qty);
         }
         // Add pricing tiers if not present
         if (!service.pricingTiers) {
