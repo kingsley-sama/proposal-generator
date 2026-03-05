@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useProposal } from '@/contexts/ProposalContext';
 import serviceDescriptions from '@/lib/service_description';
+// @ts-ignore
+import italicData from '@/italics_data';
 
 interface ProposalData {
   clientInfo: any;
@@ -1394,100 +1396,98 @@ export default function PreviewPage() {
             <div className="text-[8.5pt] mt-4 leading-normal text-gray-900 italic">
               <p>
                 <span
-                  key="note1"
+                  key="p_one"
                   contentEditable
                   suppressContentEditableWarning
-                  onBlur={(e) => handleEditableBlur('terms.note1', e)}
+                  onBlur={(e) => handleEditableBlur('terms.p_one', e)}
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.note1 || '(1): Sollten Sie nach der gratis Revision eine weitere Revision benötigen, die nicht durch uns verschuldet wurde, führen wir diese standardmässig für 50 % des Nettopreises pro Visualisierung durch. Unsere effizienten Prozesse und die sehr hohe Qualität führen jedoch dazu, dass in der Regel eine einzige Revision ausreicht: In hunderten von Projekten benötigen unsere Kunden nur in 6 % aller Fälle eine zusätzliche Revision, und auch dann meist nur, wenn sich die Pläne nachträglich deutlich geändert haben.'}
+                  {proposalData.terms?.p_one || italicData.p_one}
                 </span>
               </p>
               <p>
                 <span
-                  key="note1b"
+                  key="p_two"
                   contentEditable
                   suppressContentEditableWarning
-                  onBlur={(e) => handleEditableBlur('terms.note1b', e)}
+                  onBlur={(e) => handleEditableBlur('terms.p_two', e)}
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.note1b || 'Bitte beachten Sie: Bei Änderungen der Pläne (unabhängig davon, ob diese im Rahmen der gratis oder einer zusätzlichen Revision erfolgen) wird der Preis je nach Umfang der Veränderungen individuell festgelegt. Je nach Umfang dauert eine Revision mindestens 50 % der ursprünglichen Lieferzeit.'}
+                  {proposalData.terms?.p_two || italicData.p_two}
                 </span>
               </p>
               <p>
                 <span
-                  key="note2"
+                  key="p_three"
                   contentEditable
                   suppressContentEditableWarning
-                  onBlur={(e) => handleEditableBlur('terms.note2', e)}
+                  onBlur={(e) => handleEditableBlur('terms.p_three', e)}
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.note2 || (hasVirtualTour
-                    ? '(2): Sollten Sie nach 12 Monaten die Tour immer noch benutzen möchten, können Sie gerne eine Verlängerung des Hostings um weitere 12 Monate optional für 50,00 € beauftragen.'
-                    : '')}
+                  {proposalData.terms?.p_three || (hasVirtualTour ? italicData.p_three : '')}
                 </span>
               </p>
               <p>
                 <span
-                  key="noteHaftung"
+                  key="p_four"
                   contentEditable
                   suppressContentEditableWarning
-                  onBlur={(e) => handleEditableBlur('terms.noteHaftung', e)}
+                  onBlur={(e) => handleEditableBlur('terms.p_four', e)}
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.noteHaftung || 'Haftungsausschluss: Wir sind stets bestrebt, Ihre Visualisierungen so detailgetreu wie möglich zu erstellen. Jedoch dienen die Visualisierungen nur der Veranschaulichung. Folglich wird keine Haftung für eventuelle Schäden auf Grund von Abweichungen übernommen.'}
+                  {proposalData.terms?.p_four || italicData.p_four}
                 </span>
               </p>
               <p>
                 <span
-                  key="noteNutzung"
+                  key="p_five"
                   contentEditable
                   suppressContentEditableWarning
-                  onBlur={(e) => handleEditableBlur('terms.noteNutzung', e)}
+                  onBlur={(e) => handleEditableBlur('terms.p_five', e)}
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.noteNutzung || 'Nutzungsrecht: Die Nutzung der durch uns erstellten Visualisierungen ist erst nach Zahlung gestattet.'}
+                  {proposalData.terms?.p_five || italicData.p_five}
                 </span>
               </p>
               <p>
                 <span
-                  key="noteAGB"
+                  key="p_six"
                   contentEditable
                   suppressContentEditableWarning
-                  onBlur={(e) => handleEditableBlur('terms.noteAGB', e)}
+                  onBlur={(e) => handleEditableBlur('terms.p_six', e)}
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.noteAGB || 'Es gelten unsere allgemeinen Verkaufs- und Lieferbedingungen. Die gültige Version der allgemeinen Verkaufs- und Lieferbedingungen Stand 03/2023 finden Sie auf der Website: https://www.exposeprofi.de/agb. Außerdem auf Anforderung erhältlich.'}
+                  {proposalData.terms?.p_six || italicData.p_six}
                 </span>
               </p>
               <p>
                 <span
-                  key="noteRechnung"
+                  key="p_seven"
                   contentEditable
                   suppressContentEditableWarning
-                  onBlur={(e) => handleEditableBlur('terms.noteRechnung', e)}
+                  onBlur={(e) => handleEditableBlur('terms.p_seven', e)}
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.noteRechnung || 'Nach der ersten vollständigen Lieferung aller bestellten Produkte wird das Projekt in Rechnung gestellt. Die im Angebot inbegriffene kostenlose Revision können Sie jederzeit in Anspruch nehmen.'}
+                  {proposalData.terms?.p_seven || italicData.p_seven}
                 </span>
               </p>
               <p>
                 <span
-                  key="noteKapazitaet"
+                  key="p_eight"
                   contentEditable
                   suppressContentEditableWarning
-                  onBlur={(e) => handleEditableBlur('terms.noteKapazitaet', e)}
+                  onBlur={(e) => handleEditableBlur('terms.p_eight', e)}
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.noteKapazitaet || 'Damit wir Ihr Projekt zügig und planbar umsetzen können, reservieren wir feste Kapazitäten. Wenn Sie die vollständigen Unterlagen entgegen Ihrer ursprünglichen Planung nicht innerhalb von 30 Tagen nach Angebotsannahme einreichen können, bleibt Ihr Auftrag selbstverständlich erhalten. Wir wandeln ihn dann einfach in eine Gutscheinrechnung um. Der Gutschein ist 12 Monate gültig und kann flexibel für Visualisierungen des Objektes eingesetzt werden.'}
+                  {proposalData.terms?.p_eight || italicData.p_eight}
                 </span>
               </p>
             </div>

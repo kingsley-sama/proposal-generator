@@ -48,7 +48,7 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
     
-    const { clientInfo, projectInfo, services, pricing, signature, images: imageMetadata } = data;
+    const { clientInfo, projectInfo, services, pricing, signature, images: imageMetadata, terms } = data;
     
     if (!clientInfo) {
       return NextResponse.json({ success: false, error: 'Missing client information' }, { status: 400 });
@@ -130,7 +130,8 @@ export async function POST(request: Request) {
         signatureName: signature?.signatureName || 'Christopher Helm'
       },
       services: services || [],
-      images: images
+      images: images,
+      terms: terms || {}
     };
     
     const clientOutputDir = path.join(process.cwd(), 'output', clientFolderName);
