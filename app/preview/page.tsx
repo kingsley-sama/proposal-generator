@@ -1401,7 +1401,19 @@ export default function PreviewPage() {
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.note1 || '(1): Sollten Sie nach der gratis Revision eine weitere Revision benötigen, die nicht durch uns verschuldet wurde, führen wir diese standardmässig für 50 % des Nettopreises pro Visualisierung durch. Unsere effizienten Prozesse und die sehr hohe Qualität führen jedoch dazu, dass in der Regel eine einzige Revision ausreicht: In hunderten von Projekten benötigen unsere Kunden nur in 6 % aller Fälle eine zusätzliche Revision, und auch dann meist nur, wenn sich die Pläne nachträglich deutlich geändert haben. Bitte beachten Sie: Bei Änderungen der Pläne (unabhängig davon, ob diese im Rahmen der gratis oder einer zusätzlichen Revision erfolgen) wird der Preis je nach Umfang der Veränderungen individuell festgelegt. Je nach Umfang dauert eine Revision mindestens 50 % der ursprünglichen Lieferzeit.'}
+                  {proposalData.terms?.note1 || '(1): Sollten Sie nach der gratis Revision eine weitere Revision benötigen, die nicht durch uns verschuldet wurde, führen wir diese standardmässig für 50 % des Nettopreises pro Visualisierung durch. Unsere effizienten Prozesse und die sehr hohe Qualität führen jedoch dazu, dass in der Regel eine einzige Revision ausreicht: In hunderten von Projekten benötigen unsere Kunden nur in 6 % aller Fälle eine zusätzliche Revision, und auch dann meist nur, wenn sich die Pläne nachträglich deutlich geändert haben.'}
+                </span>
+              </p>
+              <p>
+                <span
+                  key="note1b"
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => handleEditableBlur('terms.note1b', e)}
+                  onKeyDown={handleEnterKey}
+                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                >
+                  {proposalData.terms?.note1b || 'Bitte beachten Sie: Bei Änderungen der Pläne (unabhängig davon, ob diese im Rahmen der gratis oder einer zusätzlichen Revision erfolgen) wird der Preis je nach Umfang der Veränderungen individuell festgelegt. Je nach Umfang dauert eine Revision mindestens 50 % der ursprünglichen Lieferzeit.'}
                 </span>
               </p>
               <p>
