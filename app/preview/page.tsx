@@ -74,8 +74,31 @@ export default function PreviewPage() {
       setBulkEditText('');
   };
 
+  // Helper to adjust German singular/plural verb forms based on quantity
+  const adjustSingularPlural = (text: string, quantity: number): string => {
+    if (quantity === 1) {
+      // Singular: "Geliefert werden X ..." → "Geliefert wird X ..."
+      text = text.replace(/Geliefert werden (\d+)/i, 'Geliefert wird $1');
+      // Plural nouns → singular: "Ansichten" → "Ansicht", "Grundrisse" → "Grundriss", etc.
+      text = text.replace(/gerenderte Außenansichten/g, 'gerenderte Außenansicht');
+      text = text.replace(/gerenderte Innenansichten/g, 'gerenderte Innenansicht');
+      text = text.replace(/gerenderte Ansichten/g, 'gerenderte Ansicht');
+      text = text.replace(/(\d+)\s+3D-Grundrisse(?!\s*Spezial)/g, '$1 3D-Grundriss');
+      text = text.replace(/(\d+)\s+3D-Grundrisse Spezial/g, '$1 3D-Grundriss Spezial');
+      text = text.replace(/(\d+)\s+2D-Grundrisse/g, '$1 2D-Grundriss');
+      text = text.replace(/(\d+)\s+3D-Geschossansichten/g, '$1 3D-Geschossansicht');
+      text = text.replace(/(\d+)\s+2D-Geschossansichten/g, '$1 2D-Geschossansicht');
+      text = text.replace(/(\d+)\s+2D-Tiefgaragenpläne/g, '$1 2D-Tiefgaragenplan');
+      text = text.replace(/(\d+)\s+Digital Home Staging Fotos/g, '$1 Digital Home Staging Foto');
+      text = text.replace(/(\d+)\s+Digitale Renovierungsfotos/g, '$1 Digitales Renovierungsfoto');
+      text = text.replace(/Bodenperspektiven/g, 'Bodenperspektive');
+    }
+    return text;
+  };
+
   // Helper to replace placeholders like {{QUANTITY}} or {{PROJECT_NAME}} in description text
   const replacePlaceholders = (items: any[], context: { quantity: number | string, projectName: string }): any[] => {
+    const qty = typeof context.quantity === 'string' ? parseInt(context.quantity) || 1 : context.quantity;
     return items.map(item => {
       // Handle string items (legacy support)
       if (typeof item === 'string') {
@@ -84,6 +107,8 @@ export default function PreviewPage() {
         // Replace standard placeholders
         text = text.replace(/\{\{PROJECT_NAME\}\}/g, context.projectName);
         text = text.replace(/\{\{QUANTITY\}\}/g, context.quantity.toString());
+        // Adjust singular/plural
+        text = adjustSingularPlural(text, qty);
         
         return text;
       }
@@ -94,6 +119,8 @@ export default function PreviewPage() {
         // Replace standard placeholders
         newItem.text = newItem.text.replace(/\{\{PROJECT_NAME\}\}/g, context.projectName);
         newItem.text = newItem.text.replace(/\{\{QUANTITY\}\}/g, context.quantity.toString());
+        // Adjust singular/plural
+        newItem.text = adjustSingularPlural(newItem.text, qty);
       }
       
       if (newItem.children && newItem.children.length > 0) {
@@ -166,6 +193,50 @@ export default function PreviewPage() {
               'MFH-6-10': [699, 499, 399, 349, 329],
               'MFH-11-15': [799, 599, 499, 399, 349]
             };
+            const buildingTypeLabels: Record<string, string> = {
+              'EFH': 'EFH (Einfamilienhaus)',
+              'DHH': 'DHH (Doppelhaushälfte)',
+              'MFH-3-5': 'MFH (3-5 WE)',
+              'MFH-6-10': 'MFH (6-10 WE)',
+              'MFH-11-15': 'MFH (11-15 WE)'
+            };
+            // Auto-update sub_name with the building type label
+            service.sub_name = `(${buildingTypeLabels[buildingType] || buildingType})`;
+            const prices = priceMatrix[buildingType];
+            if (prices) {
+              service.pricingTiers = [
+                { quantity: 1, price: prices[0], label: `1 Ansicht Netto: ${fmt(prices[0])} €` },
+                { quantity: 2, price: prices[1], label: `2 Ansichten: Netto pro Ansicht: ${fmt(prices[1])} €` },
+                { quantity: 3, price: prices[2], label: `3 Ansichten: Netto pro Ansicht: ${fmt(prices[2])} €` },
+                { quantity: 4, price: prices[3], label: `4 Ansichten: Netto pro Ansicht: ${fmt(prices[3])} €` },
+                { quantity: 5, price: prices[4], label: `≥5 Ansichten: Netto pro Ansicht: ${fmt(prices[4])} €` },
+              ];
+            }
+          } else {
+            service.pricingTiers = [];
+          }
+        }
+        // Dynamic pricing tiers for exterior-bird – same building-type-based matrix as exterior-ground
+        if (service.name === '3D-Außenvisualisierung Vogelperspektive') {
+          const buildingType = data.projectInfo?.projectType;
+          if (buildingType) {
+            const fmt = (p: number) => p.toFixed(2).replace('.', ',');
+            const priceMatrix: Record<string, number[]> = {
+              'EFH': [499, 349, 299, 229, 199],
+              'DHH': [599, 399, 359, 329, 299],
+              'MFH-3-5': [599, 399, 359, 329, 299],
+              'MFH-6-10': [699, 499, 399, 349, 329],
+              'MFH-11-15': [799, 599, 499, 399, 349]
+            };
+            const buildingTypeLabels: Record<string, string> = {
+              'EFH': 'EFH (Einfamilienhaus)',
+              'DHH': 'DHH (Doppelhaushälfte)',
+              'MFH-3-5': 'MFH (3-5 WE)',
+              'MFH-6-10': 'MFH (6-10 WE)',
+              'MFH-11-15': 'MFH (11-15 WE)'
+            };
+            // Auto-update sub_name with the building type label
+            service.sub_name = `(${buildingTypeLabels[buildingType] || buildingType})`;
             const prices = priceMatrix[buildingType];
             if (prices) {
               service.pricingTiers = [
@@ -1241,33 +1312,6 @@ export default function PreviewPage() {
               </p>
             </div>
 
-            <div className="mb-5 text-gray-900">
-              <p>
-                <strong>Zahlungsbedingungen:</strong>{' '}
-                <span
-                  key={`paymentterms-${proposalData.pricing?.totalNetPrice}`}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onBlur={(e) => handleEditableBlur('terms.paymentTerms', e)}
-                  onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
-                >
-                  {proposalData.terms?.paymentTerms || (() => {
-                    const netStr = proposalData.pricing?.totalNetPrice || '0';
-                    const netNum = parseFloat(netStr.replace(/\./g, '').replace(',', '.')) || 0;
-                    if (netNum > 2000) {
-                      const grossStr = proposalData.pricing?.totalGrossPrice || '0';
-                      const grossNum = parseFloat(grossStr.replace(/\./g, '').replace(',', '.')) || 0;
-                      const advance = (grossNum * 0.5).toFixed(2).replace('.', ',');
-                      const remaining = (grossNum - grossNum * 0.5).toFixed(2).replace('.', ',');
-                      return `Anzahlung i.H.v. 50% (${advance} €) bei Beauftragung, Restzahlung (${remaining} €) nach Lieferung – zahlbar innerhalb 14 Tagen netto`;
-                    }
-                    return 'Zahlung nach Lieferung – zahlbar innerhalb 14 Tagen netto';
-                  })()}
-                </span>
-              </p>
-            </div>
-
             <p className="mb-5 italic text-gray-900">
               <span
                 key={`closinggreeting-${proposalData.terms?.closingGreeting}`}
@@ -1292,11 +1336,10 @@ export default function PreviewPage() {
               </span>
             </p>
 
-            {/* Footnotes */}
-            <div className="text-[8.5pt] mt-4 leading-normal text-gray-900">
-              <p><strong>Hinweise:</strong></p>
+            {/* Footnotes – matching original template */}
+            <div className="text-[8.5pt] mt-4 leading-normal text-gray-900 italic">
               <p>
-                ⁽¹⁾ <span
+                <span
                   key="note1"
                   contentEditable
                   suppressContentEditableWarning
@@ -1304,11 +1347,11 @@ export default function PreviewPage() {
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.note1 || 'Sollten Sie dadurch eine weitere Revision benötigen, die nicht durch uns verschuldet wurde, führen wir diese zum Kostenlosen Grundpreis durch. Bei komplexeren Änderungswünschen, welche eine deutlich längere Bearbeitungszeit benötigen, behalten wir uns das Recht vor, 50% der ursprünglichen Leistung zu berechnen. Bei Hunderten von Projekten benötigen unsere Kunden im Schnitt unter 6% aller Fälle eine zweite Revision. 50% der ursprünglichen Leistung bedeutet bei einer Revision durchschnittlich 2-3 Arbeitstage.'}
+                  {proposalData.terms?.note1 || '(1): Sollten Sie nach der gratis Revision eine weitere Revision benötigen, die nicht durch uns verschuldet wurde, führen wir diese standardmässig für 50 % des Nettopreises pro Visualisierung durch. Unsere effizienten Prozesse und die sehr hohe Qualität führen jedoch dazu, dass in der Regel eine einzige Revision ausreicht: In hunderten von Projekten benötigen unsere Kunden nur in 6 % aller Fälle eine zusätzliche Revision, und auch dann meist nur, wenn sich die Pläne nachträglich deutlich geändert haben. Bitte beachten Sie: Bei Änderungen der Pläne (unabhängig davon, ob diese im Rahmen der gratis oder einer zusätzlichen Revision erfolgen) wird der Preis je nach Umfang der Veränderungen individuell festgelegt. Je nach Umfang dauert eine Revision mindestens 50 % der ursprünglichen Lieferzeit.'}
                 </span>
               </p>
               <p>
-                ⁽²⁾ <span
+                <span
                   key="note2"
                   contentEditable
                   suppressContentEditableWarning
@@ -1317,8 +1360,68 @@ export default function PreviewPage() {
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
                   {proposalData.terms?.note2 || (hasVirtualTour
-                    ? 'Die Lieferzeit beginnt nach Auftragsbestätigung und Zahlungseingang der Anzahlung. Bei Bestellung eines virtuellen Rundgangs kann die Bereitstellung zusätzliche 3-5 Werktage in Anspruch nehmen.'
-                    : 'Die Lieferzeit beginnt nach Auftragsbestätigung und Zahlungseingang der Anzahlung.')}
+                    ? '(2): Sollten Sie nach 12 Monaten die Tour immer noch benutzen möchten, können Sie gerne eine Verlängerung des Hostings um weitere 12 Monate optional für 50,00 € beauftragen.'
+                    : '')}
+                </span>
+              </p>
+              <p>
+                <span
+                  key="noteHaftung"
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => handleEditableBlur('terms.noteHaftung', e)}
+                  onKeyDown={handleEnterKey}
+                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                >
+                  {proposalData.terms?.noteHaftung || 'Haftungsausschluss: Wir sind stets bestrebt, Ihre Visualisierungen so detailgetreu wie möglich zu erstellen. Jedoch dienen die Visualisierungen nur der Veranschaulichung. Folglich wird keine Haftung für eventuelle Schäden auf Grund von Abweichungen übernommen.'}
+                </span>
+              </p>
+              <p>
+                <span
+                  key="noteNutzung"
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => handleEditableBlur('terms.noteNutzung', e)}
+                  onKeyDown={handleEnterKey}
+                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                >
+                  {proposalData.terms?.noteNutzung || 'Nutzungsrecht: Die Nutzung der durch uns erstellten Visualisierungen ist erst nach Zahlung gestattet.'}
+                </span>
+              </p>
+              <p>
+                <span
+                  key="noteAGB"
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => handleEditableBlur('terms.noteAGB', e)}
+                  onKeyDown={handleEnterKey}
+                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                >
+                  {proposalData.terms?.noteAGB || 'Es gelten unsere allgemeinen Verkaufs- und Lieferbedingungen. Die gültige Version der allgemeinen Verkaufs- und Lieferbedingungen Stand 03/2023 finden Sie auf der Website: https://www.exposeprofi.de/agb. Außerdem auf Anforderung erhältlich.'}
+                </span>
+              </p>
+              <p>
+                <span
+                  key="noteRechnung"
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => handleEditableBlur('terms.noteRechnung', e)}
+                  onKeyDown={handleEnterKey}
+                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                >
+                  {proposalData.terms?.noteRechnung || 'Nach der ersten vollständigen Lieferung aller bestellten Produkte wird das Projekt in Rechnung gestellt. Die im Angebot inbegriffene kostenlose Revision können Sie jederzeit in Anspruch nehmen.'}
+                </span>
+              </p>
+              <p>
+                <span
+                  key="noteKapazitaet"
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={(e) => handleEditableBlur('terms.noteKapazitaet', e)}
+                  onKeyDown={handleEnterKey}
+                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                >
+                  {proposalData.terms?.noteKapazitaet || 'Damit wir Ihr Projekt zügig und planbar umsetzen können, reservieren wir feste Kapazitäten. Wenn Sie die vollständigen Unterlagen entgegen Ihrer ursprünglichen Planung nicht innerhalb von 30 Tagen nach Angebotsannahme einreichen können, bleibt Ihr Auftrag selbstverständlich erhalten. Wir wandeln ihn dann einfach in eine Gutscheinrechnung um. Der Gutschein ist 12 Monate gültig und kann flexibel für Visualisierungen des Objektes eingesetzt werden.'}
                 </span>
               </p>
             </div>
