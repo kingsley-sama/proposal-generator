@@ -350,9 +350,17 @@ export default function PreviewPage() {
     const newServices = [...proposalData.services];
     newServices[index] = { ...newServices[index], [field]: value };
 
-    if (field === 'quantity' || field === 'unitPrice') {
-      // Compute pricing using the already-updated newServices so both
-      // services and pricing land in one setState call (no stale-closure race).
+    if (field === 'quantity') {
+      // When quantity changes, look up matching tier price and set unitPrice
+      const qty = parseInt(value) || 1;
+      const service = newServices[index];
+      const tierPrice = getTierPriceForQuantity(service.pricingTiers, qty);
+      if (tierPrice !== null) {
+        service.unitPrice = tierPrice.toFixed(2).replace('.', ',');
+      }
+      const newPricing = computePricing(newServices);
+      updateProposalData({ services: newServices, pricing: newPricing });
+    } else if (field === 'unitPrice') {
       const newPricing = computePricing(newServices);
       updateProposalData({ services: newServices, pricing: newPricing });
     } else {
@@ -644,6 +652,51 @@ export default function PreviewPage() {
       recalculateTotals();
     }
   }, [discountType, discountValue, hasDiscount, discountDescription]);
+
+  // Helper: find the matching tier price for a given quantity
+  const getTierPriceForQuantity = (tiers: any[], qty: number): number | null => {
+    if (!tiers || tiers.length === 0) return null;
+    // Find exact match or the last tier whose quantity <= qty (tiered pricing)
+    let matched = tiers[tiers.length - 1]; // default to highest tier
+    for (const tier of tiers) {
+      if (tier.quantity === qty) { matched = tier; break; }
+      if (tier.quantity <= qty) matched = tier;
+    }
+    return matched?.price ?? null;
+  };
+
+  // Helper: rebuild a tier label from its quantity and price
+  const rebuildTierLabel = (tier: any, allTiers: any[], tierIndex: number): string => {
+    const fmt = (p: number) => p.toFixed(2).replace('.', ',');
+    const isLast = tierIndex === allTiers.length - 1;
+    const prefix = isLast && allTiers.length > 1 ? '≥' : '';
+    if (tier.quantity === 1) {
+      return `1 Ansicht Netto: ${fmt(tier.price)} €`;
+    }
+    return `${prefix}${tier.quantity} Ansichten: Netto pro Ansicht: ${fmt(tier.price)} €`;
+  };
+
+  // Update a specific tier's price and sync unitPrice if needed
+  const updateTierPrice = (serviceIndex: number, tierIndex: number, newPrice: number) => {
+    if (!proposalData) return;
+    const newServices = [...proposalData.services];
+    const service = { ...newServices[serviceIndex] };
+    const tiers = [...(service.pricingTiers || [])];
+    tiers[tierIndex] = { ...tiers[tierIndex], price: newPrice };
+    tiers[tierIndex].label = rebuildTierLabel(tiers[tierIndex], tiers, tierIndex);
+    service.pricingTiers = tiers;
+
+    // If the current quantity matches this tier, update unitPrice
+    const qty = parseInt(service.quantity) || 1;
+    const matchedPrice = getTierPriceForQuantity(tiers, qty);
+    if (matchedPrice !== null) {
+      service.unitPrice = matchedPrice.toFixed(2).replace('.', ',');
+    }
+
+    newServices[serviceIndex] = service;
+    const newPricing = computePricing(newServices);
+    updateProposalData({ services: newServices, pricing: newPricing });
+  };
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -1073,12 +1126,32 @@ export default function PreviewPage() {
                       
                       // Tier rows
                       service.pricingTiers.forEach((tier: any, tierIndex: number) => {
+                        // Split label into text prefix and editable price
+                        const priceMatch = tier.label?.match(/^(.+?)\s*(\d+[.,]\d{2})\s*€$/);
                         rows.push(
                           <tr key={`tier-${index}-${tierIndex}`} className="bg-gray-50">
                             <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
                             <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
                             <td className="border border-gray-800 p-1 pl-5 text-[8.5pt] text-gray-900">
-                              {tier.label}
+                              {priceMatch ? (
+                                <>
+                                  {priceMatch[1]}{' '}
+                                  <span
+                                    contentEditable
+                                    suppressContentEditableWarning
+                                    onBlur={(e) => {
+                                      const raw = e.currentTarget.textContent?.replace(',', '.') || '0';
+                                      const parsed = parseFloat(raw);
+                                      if (!isNaN(parsed)) updateTierPrice(index, tierIndex, parsed);
+                                    }}
+                                    onKeyDown={handleEnterKey}
+                                    className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                                  >
+                                    {priceMatch[2]}
+                                  </span>
+                                  {' €'}
+                                </>
+                              ) : tier.label}
                             </td>
                             <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
                           </tr>
