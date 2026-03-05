@@ -340,7 +340,9 @@ export default function PreviewPage() {
     setProposalData(newData);
     // Sync to context so form page reflects changes on back-navigation
     proposal.updateRawProposalData(updates);
-    localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
+    // Strip terms from localStorage so footnote defaults always come from italics_data.js
+    const { terms, ...dataWithoutTerms } = newData;
+    localStorage.setItem('proposalPreviewData', JSON.stringify(dataWithoutTerms));
   };
 
   const updateService = (index: number, field: string, value: any) => {
