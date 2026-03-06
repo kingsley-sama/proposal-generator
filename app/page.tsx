@@ -8,6 +8,7 @@ import { ImageUploadSection } from '@/components/ImageUploadSection';
 import { Summary } from '@/components/Summary';
 import { AutoSaveIndicator } from '@/components/AutoSaveIndicator';
 import { ALL_SERVICES } from '@/lib/services';
+import serviceDescriptions from '../lib/service_description.js';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useProposal } from '@/contexts/ProposalContext';
 
@@ -379,18 +380,9 @@ export default function ProposalFormPage() {
         return 69 * quantity;
       }
 
-      case '3d-floorplan-special':
-        return 99 * quantity;
-      
       case '3d-complete-floor':
         return 199 * quantity;
 
-      case '2d-floor-view':
-        return 99 * quantity;
-
-      case '2d-garage-plan':
-        return 99 * quantity;
-      
       case '2d-floorplan': {
         const projectType = serviceProjectTypes[serviceId];
         if (projectType === 'commercial') {
@@ -408,9 +400,6 @@ export default function ProposalFormPage() {
       
       case 'renovation':
         return 139 * quantity;
-
-      case 'renovation-exterior':
-        return 189 * quantity;
       
       case '360-interior': {
         const apartmentSize = serviceApartmentSizes[serviceId];
@@ -431,26 +420,14 @@ export default function ProposalFormPage() {
         return (prices[buildingType] || 0) * quantity;
       }
 
-      case 'timelapse-exterior':
-        return 899 * quantity;
-
-      case 'ki-video':
-        return 299 * quantity;
-      
       case 'slideshow':
-        return 0; // Price TBD
+        return 499 * quantity;
       
       case 'site-plan':
-        return 0; // Price TBD
+        return 99 * quantity;
 
-      case '2d-micro-location':
-        return 129 * quantity;
-
-      case '2d-macro-location':
-        return 129 * quantity;
-      
       case 'social-media':
-        return 0; // Price TBD
+        return 299 * quantity;
       
       case 'interior': {
         const projectType = serviceProjectTypes[serviceId];
@@ -470,16 +447,16 @@ export default function ProposalFormPage() {
         return 0; // Price on request
       
       case 'video-snippet':
-        return 0; // Price TBD
+        return 299 * quantity;
       
       case 'expose-layout':
-        return 0; // Price TBD
+        return 1199 * quantity;
       
       case 'expose-creation':
-        return 0; // Price TBD
+        return 499 * quantity;
       
       case 'project-branding':
-        return 0; // Price TBD
+        return 1999 * quantity;
       
       case 'project-website':
       case 'flat-finder':
@@ -496,22 +473,14 @@ export default function ProposalFormPage() {
       '3D-Außenvisualisierung Bodenperspektive': 'exterior-ground',
       '3D-Außenvisualisierung Vogelperspektive': 'exterior-bird',
       '3D-Grundriss': '3d-floorplan',
-      '3D-Grundriss Spezial': '3d-floorplan-special',
-      '3D-Geschossansicht': '3d-complete-floor',
+      '3D-Geschossplan': '3d-complete-floor',
       '2D-Grundriss': '2d-floorplan',
-      '2D-Geschossansicht': '2d-floor-view',
-      '2D-Tiefgaragenplan': '2d-garage-plan',
       'Digital Home Staging': 'home-staging',
       'Digitale Renovierung': 'renovation',
-      'Digitale Renovierung Außen': 'renovation-exterior',
       '360° Tour Innen': '360-interior',
-      'Video Außen': '360-exterior',
-      'Zeitraffer Außen': 'timelapse-exterior',
-      'KI Video': 'ki-video',
+      '360° Video Außen': '360-exterior',
       'Slideshow Video': 'slideshow',
       '3D-Lageplan': 'site-plan',
-      '2D-Mikrolageplan': '2d-micro-location',
-      '2D-Makrolageplan': '2d-macro-location',
       'Social Media Paket': 'social-media',
       '3D-Innenvisualisierung': 'interior',
       '3D-Visualisierung Terrasse': 'terrace',
@@ -630,22 +599,14 @@ export default function ProposalFormPage() {
       'exterior-ground': '3D-Außenvisualisierung Bodenperspektive',
       'exterior-bird': '3D-Außenvisualisierung Vogelperspektive',
       '3d-floorplan': '3D-Grundriss',
-      '3d-floorplan-special': '3D-Grundriss Spezial',
-      '3d-complete-floor': '3D-Geschossansicht',
+      '3d-complete-floor': '3D-Geschossplan',
       '2d-floorplan': '2D-Grundriss',
-      '2d-floor-view': '2D-Geschossansicht',
-      '2d-garage-plan': '2D-Tiefgaragenplan',
       'home-staging': 'Digital Home Staging',
       'renovation': 'Digitale Renovierung',
-      'renovation-exterior': 'Digitale Renovierung Außen',
       '360-interior': '360° Tour Innen',
-      '360-exterior': 'Video Außen',
-      'timelapse-exterior': 'Zeitraffer Außen',
-      'ki-video': 'KI Video',
+      '360-exterior': '360° Video Außen',
       'slideshow': 'Slideshow Video',
       'site-plan': '3D-Lageplan',
-      '2d-micro-location': '2D-Mikrolageplan',
-      '2d-macro-location': '2D-Makrolageplan',
       'social-media': 'Social Media Paket',
       'interior': '3D-Innenvisualisierung',
       'terrace': '3D-Visualisierung Terrasse',

@@ -85,12 +85,9 @@ export default function PreviewPage() {
       text = text.replace(/gerenderte Außenansichten/g, 'gerenderte Außenansicht');
       text = text.replace(/gerenderte Innenansichten/g, 'gerenderte Innenansicht');
       text = text.replace(/gerenderte Ansichten/g, 'gerenderte Ansicht');
-      text = text.replace(/(\d+)\s+3D-Grundrisse(?!\s*Spezial)/g, '$1 3D-Grundriss');
-      text = text.replace(/(\d+)\s+3D-Grundrisse Spezial/g, '$1 3D-Grundriss Spezial');
+      text = text.replace(/(\d+)\s+3D-Grundrisse/g, '$1 3D-Grundriss');
       text = text.replace(/(\d+)\s+2D-Grundrisse/g, '$1 2D-Grundriss');
-      text = text.replace(/(\d+)\s+3D-Geschossansichten/g, '$1 3D-Geschossansicht');
-      text = text.replace(/(\d+)\s+2D-Geschossansichten/g, '$1 2D-Geschossansicht');
-      text = text.replace(/(\d+)\s+2D-Tiefgaragenpläne/g, '$1 2D-Tiefgaragenplan');
+      text = text.replace(/(\d+)\s+3D-Geschosspläne/g, '$1 3D-Geschossplan');
       text = text.replace(/(\d+)\s+Digital Home Staging Fotos/g, '$1 Digital Home Staging Foto');
       text = text.replace(/(\d+)\s+Digitale Renovierungsfotos/g, '$1 Digitales Renovierungsfoto');
       text = text.replace(/Bodenperspektiven/g, 'Bodenperspektive');
@@ -101,12 +98,9 @@ export default function PreviewPage() {
       text = text.replace(/gerenderte Außenansicht(?!en)/g, 'gerenderte Außenansichten');
       text = text.replace(/gerenderte Innenansicht(?!en)/g, 'gerenderte Innenansichten');
       text = text.replace(/gerenderte Ansicht(?!en)/g, 'gerenderte Ansichten');
-      text = text.replace(/(\d+)\s+3D-Grundriss(?!e)(?!\s*Spezial)/g, '$1 3D-Grundrisse');
-      text = text.replace(/(\d+)\s+3D-Grundriss Spezial(?!.*e)/g, '$1 3D-Grundrisse Spezial');
+      text = text.replace(/(\d+)\s+3D-Grundriss(?!e)/g, '$1 3D-Grundrisse');
       text = text.replace(/(\d+)\s+2D-Grundriss(?!e)/g, '$1 2D-Grundrisse');
-      text = text.replace(/(\d+)\s+3D-Geschossansicht(?!en)/g, '$1 3D-Geschossansichten');
-      text = text.replace(/(\d+)\s+2D-Geschossansicht(?!en)/g, '$1 2D-Geschossansichten');
-      text = text.replace(/(\d+)\s+2D-Tiefgaragenplan(?!.*ä)/g, '$1 2D-Tiefgaragenpläne');
+      text = text.replace(/(\d+)\s+3D-Geschossplan(?!.*ä)/g, '$1 3D-Geschosspläne');
       text = text.replace(/(\d+)\s+Digital Home Staging Foto(?!s)/g, '$1 Digital Home Staging Fotos');
       text = text.replace(/(\d+)\s+Digitales Renovierungsfoto(?!s)/g, '$1 Digitale Renovierungsfotos');
       text = text.replace(/Bodenperspektive(?!n)/g, 'Bodenperspektiven');
@@ -127,7 +121,7 @@ export default function PreviewPage() {
         // Update "Xx gerenderte" pattern (e.g. "3x gerenderte")
         text = text.replace(/\d+x\s+gerenderte/i, `${quantity}x gerenderte`);
         // Update quantity in "X 3D-Grundrisse" etc.
-        text = text.replace(/\d+(\s+(?:3D-Grundriss|2D-Grundriss|3D-Geschossansicht|2D-Geschossansicht|2D-Tiefgaragen|Digital Home Staging|Digitale Renovierung))/g, `${quantity}$1`);
+        text = text.replace(/\d+(\s+(?:3D-Grundriss|2D-Grundriss|3D-Geschossplan|Digital Home Staging|Digitale Renovierung))/g, `${quantity}$1`);
         text = adjustSingularPlural(text, quantity);
         return text;
       }
@@ -136,7 +130,7 @@ export default function PreviewPage() {
         newItem.text = newItem.text.replace(/\{\{QUANTITY\}\}/g, quantity.toString());
         newItem.text = newItem.text.replace(/(Geliefert (?:werden|wird)\s+)\d+/i, `$1${quantity}`);
         newItem.text = newItem.text.replace(/\d+x\s+gerenderte/i, `${quantity}x gerenderte`);
-        newItem.text = newItem.text.replace(/\d+(\s+(?:3D-Grundriss|2D-Grundriss|3D-Geschossansicht|2D-Geschossansicht|2D-Tiefgaragen|Digital Home Staging|Digitale Renovierung))/g, `${quantity}$1`);
+        newItem.text = newItem.text.replace(/\d+(\s+(?:3D-Grundriss|2D-Grundriss|3D-Geschossplan|Digital Home Staging|Digitale Renovierung))/g, `${quantity}$1`);
         newItem.text = adjustSingularPlural(newItem.text, quantity);
       }
       if (newItem.children && newItem.children.length > 0) {
@@ -963,7 +957,7 @@ export default function PreviewPage() {
                   </tr>
                 ) : (
                   proposalData.services.flatMap((service: any, index: number) => {
-                    const serviceInfo = findServiceInfo(service.name);
+                    const serviceInfo = findServiceInfo(service);
                     const rows = [];
                     
                     // Main service row

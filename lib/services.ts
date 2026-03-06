@@ -35,15 +35,8 @@ export const ALL_SERVICES = [
     hasProjectType: true
   },
   {
-    id: '3d-floorplan-special',
-    name: '3D-Grundriss Spezial',
-    hasBuildingType: false,
-    hasApartmentSize: false,
-    hasProjectType: false
-  },
-  {
     id: '3d-complete-floor',
-    name: '3D-Geschossansicht',
+    name: '3D-Geschossplan',
     hasBuildingType: false,
     hasApartmentSize: false,
     hasProjectType: false
@@ -56,36 +49,8 @@ export const ALL_SERVICES = [
     hasProjectType: true
   },
   {
-    id: '2d-floor-view',
-    name: '2D-Geschossansicht',
-    hasBuildingType: false,
-    hasApartmentSize: false,
-    hasProjectType: false
-  },
-  {
-    id: '2d-garage-plan',
-    name: '2D-Tiefgaragenplan',
-    hasBuildingType: false,
-    hasApartmentSize: false,
-    hasProjectType: false
-  },
-  {
     id: 'site-plan',
     name: '3D-Lageplan',
-    hasBuildingType: false,
-    hasApartmentSize: false,
-    hasProjectType: false
-  },
-  {
-    id: '2d-micro-location',
-    name: '2D-Mikrolageplan',
-    hasBuildingType: false,
-    hasApartmentSize: false,
-    hasProjectType: false
-  },
-  {
-    id: '2d-macro-location',
-    name: '2D-Makrolageplan',
     hasBuildingType: false,
     hasApartmentSize: false,
     hasProjectType: false
@@ -105,13 +70,6 @@ export const ALL_SERVICES = [
     hasProjectType: false
   },
   {
-    id: 'renovation-exterior',
-    name: 'Digitale Renovierung Außen',
-    hasBuildingType: false,
-    hasApartmentSize: false,
-    hasProjectType: false
-  },
-  {
     id: '360-interior',
     name: '360° Tour Innen',
     hasBuildingType: false,
@@ -120,22 +78,8 @@ export const ALL_SERVICES = [
   },
   {
     id: '360-exterior',
-    name: 'Video Außen',
+    name: '360° Video Außen',
     hasBuildingType: true,
-    hasApartmentSize: false,
-    hasProjectType: false
-  },
-  {
-    id: 'timelapse-exterior',
-    name: 'Zeitraffer Außen',
-    hasBuildingType: false,
-    hasApartmentSize: false,
-    hasProjectType: false
-  },
-  {
-    id: 'ki-video',
-    name: 'KI Video',
-    hasBuildingType: false,
     hasApartmentSize: false,
     hasProjectType: false
   },

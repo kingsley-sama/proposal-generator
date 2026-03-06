@@ -201,24 +201,16 @@ export function ServiceItem({
             <span className="text-xs text-gray-700 mt-1 block">
               {serviceId === 'exterior-bird' && 'Staffelpreise: 1=199€, 2=149€, 3+=99€ (nur mit Bodenperspektiven)'}
               {serviceId === '3d-complete-floor' && 'Preis: 199,00 € pro Geschoss'}
-              {serviceId === '2d-floor-view' && 'Preis: 99,00 € pro Geschoss'}
-              {serviceId === '2d-garage-plan' && 'Preis: 99,00 € pro Plan'}
               {serviceId === 'home-staging' && 'Preis: 99,00 € pro Foto'}
               {serviceId === 'renovation' && 'Preis: 139,00 € pro Foto'}
-              {serviceId === 'renovation-exterior' && 'Preis: 189,00 € pro Foto'}
-              {serviceId === 'timelapse-exterior' && 'Preis: 899,00 € pro Video'}
-              {serviceId === 'ki-video' && 'Preis: 299,00 € pro Video'}
               {serviceId === 'slideshow' && 'Preis: 499,00 € pro Video'}
               {serviceId === 'site-plan' && 'Preis: 99,00 € pro Lageplan'}
-              {serviceId === '2d-micro-location' && 'Preis: 129,00 € pro Plan'}
-              {serviceId === '2d-macro-location' && 'Preis: 129,00 € pro Plan'}
               {serviceId === 'social-media' && 'Preis: 299,00 € pro Paket'}
               {serviceId === 'interior' && (projectType === 'commercial'
                 ? 'Gewerblich: 1=499€, 2=399€, 3=389€, 4=369€, 5=359€, 6=349€, 7=339€, 8=329€, 9=319€, 10+=299€'
                 : 'Wohnimmobilie: 1=399€, 2=299€, 3=289€, 4=269€, 5=259€, 6=249€, 7=239€, 8=229€, 9=219€, 10+=199€')}
               {serviceId === 'terrace' && 'Preis nach Anfrage'}
               {serviceId === 'video-snippet' && 'Preis: 299,00 € pro Video Snippet'}
-              {serviceId === '3d-floorplan-special' && 'Preis: 99,00 € pro Grundriss'}
               {serviceId === 'expose-layout' && 'Preis: 1.199,00 € pro Layout'}
               {serviceId === 'expose-creation' && 'Preis: 499,00 € pro Exposé'}
               {serviceId === 'project-branding' && 'Preis: 1.999,00 € pro Projekt'}
