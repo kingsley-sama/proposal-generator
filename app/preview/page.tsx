@@ -1129,7 +1129,7 @@ export default function PreviewPage() {
                         // Split label into text prefix and editable price
                         const priceMatch = tier.label?.match(/^(.+?)\s*(\d+[.,]\d{2})\s*€$/);
                         rows.push(
-                          <tr key={`tier-${index}-${tierIndex}`} className="bg-gray-50">
+                          <tr key={`tier-${index}-${tierIndex}-${tier.price}`} className="bg-gray-50">
                             <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
                             <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
                             <td className="border border-gray-800 p-1 pl-5 text-[8.5pt] text-gray-900">
@@ -1137,6 +1137,7 @@ export default function PreviewPage() {
                                 <>
                                   {priceMatch[1]}{' '}
                                   <span
+                                    key={`tierprice-${index}-${tierIndex}-${tier.price}`}
                                     contentEditable
                                     suppressContentEditableWarning
                                     onBlur={(e) => {
