@@ -681,7 +681,7 @@ export default function PreviewPage() {
     service.pricingTiers = tiers;
 
     // If the current quantity matches this tier, update unitPrice
-    const qty = parseInt(service.quantity) || 1;
+    const qty = parseInt(service.quantity) || 0;
     const matchedPrice = getTierPriceForQuantity(tiers, qty);
     if (matchedPrice !== null) {
       service.unitPrice = matchedPrice.toFixed(2).replace('.', ',');
