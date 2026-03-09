@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface ServiceItemProps {
   serviceId: string;
@@ -41,6 +41,18 @@ export function ServiceItem({
   onProjectTypeChange,
   onAreaSizeChange
 }: ServiceItemProps) {
+  const [inputValue, setInputValue] = useState<string>(String(quantity));
+  const isFocusedRef = useRef(false);
+
+  // Sync from parent only when the field is not being actively edited.
+  // Using a ref (not state) for focus avoids a race condition where the effect
+  // fires with the stale old quantity just as the user blurs after typing.
+  useEffect(() => {
+    if (!isFocusedRef.current) {
+      setInputValue(String(quantity));
+    }
+  }, [quantity]);
+
   const formatPrice = (price: number) => {
     return price.toFixed(2).replace('.', ',') + ' €';
   };
@@ -192,10 +204,26 @@ export function ServiceItem({
               Anzahl {serviceId.includes('floor') ? 'Grundrisse' : 'Ansichten'} *
             </label>
             <input
-              type="number"
-              value={quantity}
-              onChange={(e) => onQuantityChange(parseInt(e.target.value) || 0)}
-              min="0"
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={inputValue}
+              onChange={(e) => {
+                // Only accept digit characters — block letters, minus, decimals.
+                // Use type="text" intentionally: type="number" causes browser-level
+                // value normalization that fights React's controlled reconciliation
+                // and silently reverts what the user typed.
+                const raw = e.target.value.replace(/[^0-9]/g, '');
+                setInputValue(raw);
+              }}
+              onFocus={() => { isFocusedRef.current = true; }}
+              onBlur={() => {
+                isFocusedRef.current = false;
+                const parsed = parseInt(inputValue, 10);
+                const normalized = isNaN(parsed) || parsed < 0 ? 0 : parsed;
+                setInputValue(String(normalized));
+                onQuantityChange(normalized);
+              }}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-slate-800"
             />
             <span className="text-xs text-gray-700 mt-1 block">
