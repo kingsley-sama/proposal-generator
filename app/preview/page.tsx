@@ -266,40 +266,28 @@ export default function PreviewPage() {
             service.pricingTiers = [];
           }
         }
-        // Dynamic pricing tiers for exterior-bird – same building-type-based matrix as exterior-ground
+        // Fixed pricing tiers for exterior-bird: 1=199€, 2=149€/view, ≥3=99€/view
         if (service.name === '3D-Außenvisualisierung Vogelperspektive') {
-          const buildingType = data.projectInfo?.projectType;
-          if (buildingType) {
-            const fmt = (p: number) => p.toFixed(2).replace('.', ',');
-            const priceMatrix: Record<string, number[]> = {
-              'EFH': [499, 349, 299, 229, 199],
-              'DHH': [599, 399, 359, 329, 299],
-              'MFH-3-5': [599, 399, 359, 329, 299],
-              'MFH-6-10': [699, 499, 399, 349, 329],
-              'MFH-11-15': [799, 599, 499, 399, 349]
-            };
-            const buildingTypeLabels: Record<string, string> = {
-              'EFH': 'EFH (Einfamilienhaus)',
-              'DHH': 'DHH (Doppelhaushälfte)',
-              'MFH-3-5': 'MFH (3-5 WE)',
-              'MFH-6-10': 'MFH (6-10 WE)',
-              'MFH-11-15': 'MFH (11-15 WE)'
-            };
-            // Auto-update sub_name with the building type label
-            service.sub_name = `(${buildingTypeLabels[buildingType] || buildingType})`;
-            const prices = priceMatrix[buildingType];
-            if (prices) {
-              service.pricingTiers = [
-                { quantity: 1, price: prices[0], label: `1 Ansicht Netto: ${fmt(prices[0])} €` },
-                { quantity: 2, price: prices[1], label: `2 Ansichten: Netto pro Ansicht: ${fmt(prices[1])} €` },
-                { quantity: 3, price: prices[2], label: `3 Ansichten: Netto pro Ansicht: ${fmt(prices[2])} €` },
-                { quantity: 4, price: prices[3], label: `4 Ansichten: Netto pro Ansicht: ${fmt(prices[3])} €` },
-                { quantity: 5, price: prices[4], label: `≥5 Ansichten: Netto pro Ansicht: ${fmt(prices[4])} €` },
-              ];
-            }
-          } else {
-            service.pricingTiers = [];
-          }
+          service.pricingTiers = [
+            { quantity: 1, price: 199, label: '1 Ansicht Netto: 199,00 €' },
+            { quantity: 2, price: 149, label: '2 Ansichten: Netto pro Ansicht: 149,00 €' },
+            { quantity: 3, price: 99,  label: '≥3 Ansichten: Netto pro Ansicht: 99,00 €' },
+          ];
+        }
+        // Set sub_name for 360° Tour Innen based on apartment size
+        if (service.name === '360° Tour Innen' && service.apartmentSize) {
+          const apartmentSizeLabels: Record<string, string> = {
+            '30': 'bis 30 m²',
+            '40': 'ca. 40 m²',
+            '50': 'ca. 50 m²',
+            '60': 'ca. 60 m²',
+            '70': 'ca. 70 m²',
+            '80': 'ca. 80 m²',
+            '90': '90–100 m²',
+            '100': '100–120 m²',
+            'EFH': 'EFH / DHH'
+          };
+          service.sub_name = `(${apartmentSizeLabels[service.apartmentSize] || service.apartmentSize})`;
         }
         // Add link if not present
         if (!service.link) {
@@ -969,7 +957,7 @@ export default function PreviewPage() {
                             contentEditable
                             suppressContentEditableWarning
                             onBlur={(e) => {
-                              const newQty = parseInt(e.currentTarget.textContent || '0');
+                              const newQty = parseInt(e.currentTarget.textContent?.replace(/x$/i, '') || '0');
                               updateService(index, 'quantity', newQty);
                             }}
                             onKeyDown={handleEnterKey}
@@ -1172,10 +1160,10 @@ export default function PreviewPage() {
         {proposalData.images && proposalData.images.length > 0 && (
           <div className="w-full min-h-[1122px] bg-white shadow-lg border border-gray-300 p-24 mb-10 flex flex-col relative">
             <div className="flex-1 pb-24">
-              <div className="font-bold mb-2 text-[11pt] text-gray-900">Perspektivbilder</div>
+              <div className="font-bold mb-2 text-[11pt] text-gray-900">Empfohlene Perspektiven Außen</div>
               {proposalData.images.map((image: any, index: number) => (
                 <div key={index} className="mb-8">
-                  {image.title && (
+                  {image.imageData && image.title && (
                     <div className="font-bold text-[11pt] mb-2 text-gray-900">
                       {image.title}
                     </div>
@@ -1488,6 +1476,7 @@ export default function PreviewPage() {
                   {proposalData.terms?.p_two || italicData.p_two}
                 </span>
               </p>
+              {(proposalData.terms?.p_three || hasVirtualTour) && (
               <p>
                 <span
                   key="p_three"
@@ -1497,9 +1486,10 @@ export default function PreviewPage() {
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.p_three || (hasVirtualTour ? italicData.p_three : '')}
+                  {proposalData.terms?.p_three || italicData.p_three}
                 </span>
               </p>
+              )}
               <p>
                 <span
                   key="p_four"

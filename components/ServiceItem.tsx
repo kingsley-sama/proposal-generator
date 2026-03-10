@@ -20,6 +20,8 @@ interface ServiceItemProps {
   onApartmentSizeChange?: (size: string) => void;
   onProjectTypeChange?: (type: string) => void;
   onAreaSizeChange?: (size: string) => void;
+  onDuplicate?: () => void;
+  onRemove?: () => void;
 }
 
 export function ServiceItem({
@@ -39,7 +41,9 @@ export function ServiceItem({
   onBuildingTypeChange,
   onApartmentSizeChange,
   onProjectTypeChange,
-  onAreaSizeChange
+  onAreaSizeChange,
+  onDuplicate,
+  onRemove
 }: ServiceItemProps) {
   const [inputValue, setInputValue] = useState<string>(String(quantity));
   const isFocusedRef = useRef(false);
@@ -80,6 +84,33 @@ export function ServiceItem({
         >
           {serviceName}
         </label>
+        {onDuplicate && (
+          <button
+            type="button"
+            onClick={onDuplicate}
+            title="Leistung duplizieren"
+            className="ml-2 p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            aria-label="Duplizieren"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+            </svg>
+          </button>
+        )}
+        {onRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            title="Kopie entfernen"
+            className="ml-1 p-1.5 rounded text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+            aria-label="Entfernen"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* Service Details */}
