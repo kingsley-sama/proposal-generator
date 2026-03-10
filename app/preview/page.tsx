@@ -301,6 +301,21 @@ export default function PreviewPage() {
             service.pricingTiers = [];
           }
         }
+        // Set sub_name for 360° Tour Innen based on apartment size
+        if (service.name === '360° Tour Innen' && service.apartmentSize) {
+          const apartmentSizeLabels: Record<string, string> = {
+            '30': 'bis 30 m²',
+            '40': 'ca. 40 m²',
+            '50': 'ca. 50 m²',
+            '60': 'ca. 60 m²',
+            '70': 'ca. 70 m²',
+            '80': 'ca. 80 m²',
+            '90': '90–100 m²',
+            '100': '100–120 m²',
+            'EFH': 'EFH / DHH'
+          };
+          service.sub_name = `(${apartmentSizeLabels[service.apartmentSize] || service.apartmentSize})`;
+        }
         // Add link if not present
         if (!service.link) {
           if (serviceInfo && serviceInfo.link) {
@@ -969,13 +984,13 @@ export default function PreviewPage() {
                             contentEditable
                             suppressContentEditableWarning
                             onBlur={(e) => {
-                              const newQty = parseInt(e.currentTarget.textContent || '0');
+                              const newQty = parseInt(e.currentTarget.textContent?.replace(/x$/i, '') || '0');
                               updateService(index, 'quantity', newQty);
                             }}
                             onKeyDown={handleEnterKey}
                             className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
                           >
-                            {service.quantity}
+                            {service.quantity}x
                           </span>
                         </td>
                         <td className="border border-gray-800 p-1.5 align-top text-gray-900">
@@ -1172,10 +1187,10 @@ export default function PreviewPage() {
         {proposalData.images && proposalData.images.length > 0 && (
           <div className="w-full min-h-[1122px] bg-white shadow-lg border border-gray-300 p-24 mb-10 flex flex-col relative">
             <div className="flex-1 pb-24">
-              <div className="font-bold mb-2 text-[11pt] text-gray-900">Perspektivbilder</div>
+              <div className="font-bold mb-2 text-[11pt] text-gray-900">Empfohlene Perspektiven Außen</div>
               {proposalData.images.map((image: any, index: number) => (
                 <div key={index} className="mb-8">
-                  {image.title && (
+                  {image.imageData && image.title && (
                     <div className="font-bold text-[11pt] mb-2 text-gray-900">
                       {image.title}
                     </div>
@@ -1488,6 +1503,7 @@ export default function PreviewPage() {
                   {proposalData.terms?.p_two || italicData.p_two}
                 </span>
               </p>
+              {(proposalData.terms?.p_three || hasVirtualTour) && (
               <p>
                 <span
                   key="p_three"
@@ -1497,9 +1513,10 @@ export default function PreviewPage() {
                   onKeyDown={handleEnterKey}
                   className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
                 >
-                  {proposalData.terms?.p_three || (hasVirtualTour ? italicData.p_three : '')}
+                  {proposalData.terms?.p_three || italicData.p_three}
                 </span>
               </p>
+              )}
               <p>
                 <span
                   key="p_four"

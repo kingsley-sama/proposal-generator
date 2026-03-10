@@ -97,6 +97,8 @@ export default function ProposalFormPage() {
   const [serviceApartmentSizes, setServiceApartmentSizes] = useState<Record<string, string>>({});
   const [serviceProjectTypes, setServiceProjectTypes] = useState<Record<string, string>>({});
   const [serviceAreaSizes, setServiceAreaSizes] = useState<Record<string, string>>({});
+  // Tracks extra instances per base service id: baseId -> [copyKey, ...]
+  const [serviceDuplicates, setServiceDuplicates] = useState<Record<string, string[]>>({});
   
   const [images, setImages] = useState<ImageData[]>([]);
   const [discount, setDiscount] = useState<DiscountInfo>({
@@ -166,7 +168,7 @@ export default function ProposalFormPage() {
     }, AUTOSAVE_INTERVAL);
 
     return () => clearInterval(interval);
-  }, [clientInfo, projectInfo, activeServices, serviceQuantities, serviceCustomPrices, serviceBuildingTypes, serviceApartmentSizes, serviceProjectTypes, serviceAreaSizes, discount]);
+  }, [clientInfo, projectInfo, activeServices, serviceQuantities, serviceCustomPrices, serviceBuildingTypes, serviceApartmentSizes, serviceProjectTypes, serviceAreaSizes, serviceDuplicates, discount]);
 
   // Calculate totals whenever relevant data changes
   useEffect(() => {
@@ -208,17 +210,29 @@ export default function ProposalFormPage() {
         const apartmentSizes: Record<string, string> = {};
         const projectTypes: Record<string, string> = {};
         const areaSizes: Record<string, string> = {};
+        const duplicatesMap: Record<string, string[]> = {};
 
         data.services.forEach((service: any) => {
-          const serviceId = getServiceIdFromName(service.name);
-          if (serviceId) {
-            activeSet.add(serviceId);
-            quantities[serviceId] = service.quantity;
-            if (service.customPrice) customPrices[serviceId] = service.customPrice;
-            if (service.buildingType) buildingTypes[serviceId] = service.buildingType;
-            if (service.apartmentSize) apartmentSizes[serviceId] = service.apartmentSize;
-            if (service.projectType) projectTypes[serviceId] = service.projectType;
-            if (service.areaSize) areaSizes[serviceId] = service.areaSize;
+          // If a saved copy has an instanceKey, use it directly; otherwise derive from name
+          const instanceKey: string | null = service.instanceKey
+            ? service.instanceKey
+            : getServiceIdFromName(service.name);
+
+          if (instanceKey) {
+            activeSet.add(instanceKey);
+            quantities[instanceKey] = service.quantity;
+            if (service.customPrice) customPrices[instanceKey] = service.customPrice;
+            if (service.buildingType) buildingTypes[instanceKey] = service.buildingType;
+            if (service.apartmentSize) apartmentSizes[instanceKey] = service.apartmentSize;
+            if (service.projectType) projectTypes[instanceKey] = service.projectType;
+            if (service.areaSize) areaSizes[instanceKey] = service.areaSize;
+
+            // Restore duplicate tracking
+            if (instanceKey.includes('__')) {
+              const baseId = instanceKey.split('__')[0];
+              if (!duplicatesMap[baseId]) duplicatesMap[baseId] = [];
+              duplicatesMap[baseId].push(instanceKey);
+            }
           }
         });
 
@@ -229,6 +243,7 @@ export default function ProposalFormPage() {
         setServiceApartmentSizes(apartmentSizes);
         setServiceProjectTypes(projectTypes);
         setServiceAreaSizes(areaSizes);
+        setServiceDuplicates(duplicatesMap);
       }
 
       console.log('✅ Form data restored from localStorage');
@@ -330,10 +345,17 @@ export default function ProposalFormPage() {
     });
   };
 
+  /** Strips copy suffix from instance keys like "exterior-ground__2" → "exterior-ground" */
+  const getBaseServiceId = (instanceKey: string): string =>
+    instanceKey.includes('__') ? instanceKey.split('__')[0] : instanceKey;
+
   const calculateServicePrice = (serviceId: string, quantity: number): number => {
+    // Strip copy suffix so duplicate instances share the same pricing logic
+    const baseId = getBaseServiceId(serviceId);
+
     // Check if it's a custom service
-    if (serviceId.startsWith('custom-')) {
-        const customService = customServices.find(s => s.id === serviceId);
+    if (baseId.startsWith('custom-')) {
+        const customService = customServices.find(s => s.id === baseId);
         return customService ? (customService.unitPrice * quantity) : 0;
     }
 
@@ -342,8 +364,8 @@ export default function ProposalFormPage() {
       return customPrice * quantity;
     }
 
-    // Service-specific pricing logic
-    switch (serviceId) {
+    // Service-specific pricing logic (switch on baseId; dict lookups use serviceId for per-instance data)
+    switch (baseId) {
       case 'exterior-ground': {
         const buildingType = projectInfo.projectType; // Use global building type
         if (!buildingType) return 0;
@@ -495,6 +517,35 @@ export default function ProposalFormPage() {
     return serviceMapping[name] || null;
   };
 
+  const handleDuplicate = (baseId: string) => {
+    // Find first unused copy key
+    const existing = new Set(Object.values(serviceDuplicates).flat());
+    let n = 2;
+    while (existing.has(`${baseId}__${n}`)) n++;
+    const copyKey = `${baseId}__${n}`;
+
+    setServiceDuplicates(prev => ({
+      ...prev,
+      [baseId]: [...(prev[baseId] || []), copyKey]
+    }));
+    setActiveServices(prev => new Set([...prev, copyKey]));
+    setServiceQuantities(prev => ({ ...prev, [copyKey]: 1 }));
+  };
+
+  const handleRemoveDuplicate = (copyKey: string, baseId: string) => {
+    setServiceDuplicates(prev => ({
+      ...prev,
+      [baseId]: (prev[baseId] || []).filter(k => k !== copyKey)
+    }));
+    setActiveServices(prev => { const s = new Set(prev); s.delete(copyKey); return s; });
+    setServiceQuantities(prev => { const n = { ...prev }; delete n[copyKey]; return n; });
+    setServiceCustomPrices(prev => { const n = { ...prev }; delete n[copyKey]; return n; });
+    setServiceBuildingTypes(prev => { const n = { ...prev }; delete n[copyKey]; return n; });
+    setServiceApartmentSizes(prev => { const n = { ...prev }; delete n[copyKey]; return n; });
+    setServiceProjectTypes(prev => { const n = { ...prev }; delete n[copyKey]; return n; });
+    setServiceAreaSizes(prev => { const n = { ...prev }; delete n[copyKey]; return n; });
+  };
+
   const collectFormData = (includeImageData = true) => {
     const today = new Date();
     const dateStr = today.toLocaleDateString('de-DE', { 
@@ -529,11 +580,16 @@ export default function ProposalFormPage() {
         const unitPrice = quantity > 0 ? totalPrice / quantity : 0;
         
         const serviceData: ServiceData = {
-          name: getServiceNameFromId(serviceId),
+          name: getServiceNameFromId(getBaseServiceId(serviceId)),
           quantity,
           unitPrice: formatPriceForJSON(unitPrice),
           totalPrice: formatPriceForJSON(totalPrice)
-        };
+        } as any;
+
+        // Persist instance key so duplicates survive a page reload
+        if (serviceId.includes('__')) {
+          (serviceData as any).instanceKey = serviceId;
+        }
 
         if (serviceCustomPrices[serviceId]) {
           serviceData.customPrice = serviceCustomPrices[serviceId];
@@ -963,45 +1019,42 @@ export default function ProposalFormPage() {
               🎨 Leistungen auswählen
             </h2>
             
-            {ALL_SERVICES.map((service) => (
-              <ServiceItem
-                key={service.id}
-                serviceId={service.id}
-                serviceName={service.name}
-                isActive={activeServices.has(service.id)}
-                quantity={serviceQuantities[service.id] || 0}
-                customPrice={serviceCustomPrices[service.id]}
-                buildingType={serviceBuildingTypes[service.id]}
-                apartmentSize={serviceApartmentSizes[service.id]}
-                projectType={serviceProjectTypes[service.id]}
-                areaSize={serviceAreaSizes[service.id]}
-                price={calculateServicePrice(service.id, serviceQuantities[service.id] || 0)}
-                onToggle={(active) => {
+            {ALL_SERVICES.flatMap((service) => {
+              // Helper to build props for any instance (original or copy)
+              const buildItemProps = (instanceKey: string, instanceName: string, isCopy: boolean) => ({
+                key: instanceKey,
+                serviceId: instanceKey,
+                serviceName: instanceName,
+                isActive: activeServices.has(instanceKey),
+                quantity: serviceQuantities[instanceKey] || 0,
+                customPrice: serviceCustomPrices[instanceKey],
+                buildingType: serviceBuildingTypes[instanceKey],
+                apartmentSize: serviceApartmentSizes[instanceKey],
+                projectType: serviceProjectTypes[instanceKey],
+                areaSize: serviceAreaSizes[instanceKey],
+                price: calculateServicePrice(instanceKey, serviceQuantities[instanceKey] || 0),
+                onToggle: (active: boolean) => {
                   const newSet = new Set(activeServices);
-                  if (active) {
-                    newSet.add(service.id);
-                  } else {
-                    newSet.delete(service.id);
-                  }
+                  if (active) { newSet.add(instanceKey); } else { newSet.delete(instanceKey); }
                   setActiveServices(newSet);
-                }}
-                onQuantityChange={(qty) => {
-                  setServiceQuantities(prev => ({ ...prev, [service.id]: qty }));
-                }}
-                onBuildingTypeChange={(type) => {
-                  setServiceBuildingTypes(prev => ({ ...prev, [service.id]: type }));
-                }}
-                onApartmentSizeChange={(size) => {
-                  setServiceApartmentSizes(prev => ({ ...prev, [service.id]: size }));
-                }}
-                onProjectTypeChange={(type) => {
-                  setServiceProjectTypes(prev => ({ ...prev, [service.id]: type }));
-                }}
-                onAreaSizeChange={(size) => {
-                  setServiceAreaSizes(prev => ({ ...prev, [service.id]: size }));
-                }}
-              />
-            ))}
+                },
+                onQuantityChange: (qty: number) => setServiceQuantities(prev => ({ ...prev, [instanceKey]: qty })),
+                onBuildingTypeChange: (type: string) => setServiceBuildingTypes(prev => ({ ...prev, [instanceKey]: type })),
+                onApartmentSizeChange: (size: string) => setServiceApartmentSizes(prev => ({ ...prev, [instanceKey]: size })),
+                onProjectTypeChange: (type: string) => setServiceProjectTypes(prev => ({ ...prev, [instanceKey]: type })),
+                onAreaSizeChange: (size: string) => setServiceAreaSizes(prev => ({ ...prev, [instanceKey]: size })),
+                onDuplicate: () => handleDuplicate(service.id),
+                onRemove: isCopy ? () => handleRemoveDuplicate(instanceKey, service.id) : undefined,
+              });
+
+              const copies = serviceDuplicates[service.id] || [];
+              return [
+                <ServiceItem {...buildItemProps(service.id, service.name, false)} />,
+                ...copies.map((copyKey, idx) => (
+                  <ServiceItem {...buildItemProps(copyKey, `${service.name} (Kopie ${idx + 2})`, true)} />
+                ))
+              ];
+            })}
 
             {/* Custom Services Section */}
             <div className="mt-6 border-t pt-6">
