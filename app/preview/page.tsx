@@ -41,6 +41,9 @@ export default function PreviewPage() {
   const [bulletModalServiceIndex, setBulletModalServiceIndex] = useState<number | null>(null);
   const [bulletInputText, setBulletInputText] = useState('');
   
+  // Offer number shown in preview (fetched from server to stay in sync with the counter)
+  const [offerNumber, setOfferNumber] = useState<string>('…');
+
   // Bulk Edit State
   const [editingServiceIndex, setEditingServiceIndex] = useState<number | null>(null);
   const [bulkEditText, setBulkEditText] = useState('');
@@ -79,30 +82,30 @@ export default function PreviewPage() {
   // Helper to adjust German singular/plural verb forms based on quantity
   const adjustSingularPlural = (text: string, quantity: number): string => {
     if (quantity === 1) {
-      // Singular: "Geliefert werden X ..." → "Geliefert wird X ..."
-      text = text.replace(/Geliefert werden (\d+)/i, 'Geliefert wird $1');
+      // Singular: "Geliefert werden Xx ..." → "Geliefert wird Xx ..."
+      text = text.replace(/Geliefert werden (\d+x?)/i, 'Geliefert wird $1');
       // Plural nouns → singular: "Ansichten" → "Ansicht", "Grundrisse" → "Grundriss", etc.
       text = text.replace(/gerenderte Außenansichten/g, 'gerenderte Außenansicht');
       text = text.replace(/gerenderte Innenansichten/g, 'gerenderte Innenansicht');
       text = text.replace(/gerenderte Ansichten/g, 'gerenderte Ansicht');
-      text = text.replace(/(\d+)\s+3D-Grundrisse/g, '$1 3D-Grundriss');
-      text = text.replace(/(\d+)\s+2D-Grundrisse/g, '$1 2D-Grundriss');
-      text = text.replace(/(\d+)\s+3D-Geschosspläne/g, '$1 3D-Geschossplan');
-      text = text.replace(/(\d+)\s+Digital Home Staging Fotos/g, '$1 Digital Home Staging Foto');
-      text = text.replace(/(\d+)\s+Digitale Renovierungsfotos/g, '$1 Digitales Renovierungsfoto');
+      text = text.replace(/(\d+x?)\s+3D-Grundrisse/g, '$1 3D-Grundriss');
+      text = text.replace(/(\d+x?)\s+2D-Grundrisse/g, '$1 2D-Grundriss');
+      text = text.replace(/(\d+x?)\s+3D-Geschosspläne/g, '$1 3D-Geschossplan');
+      text = text.replace(/(\d+x?)\s+Digital Home Staging Fotos/g, '$1 Digital Home Staging Foto');
+      text = text.replace(/(\d+x?)\s+Digitale Renovierungsfotos/g, '$1 Digitales Renovierungsfoto');
       text = text.replace(/Bodenperspektiven/g, 'Bodenperspektive');
     } else {
-      // Plural: "Geliefert wird X ..." → "Geliefert werden X ..."
-      text = text.replace(/Geliefert wird (\d+)/i, 'Geliefert werden $1');
+      // Plural: "Geliefert wird Xx ..." → "Geliefert werden Xx ..."
+      text = text.replace(/Geliefert wird (\d+x?)/i, 'Geliefert werden $1');
       // Singular nouns → plural
       text = text.replace(/gerenderte Außenansicht(?!en)/g, 'gerenderte Außenansichten');
       text = text.replace(/gerenderte Innenansicht(?!en)/g, 'gerenderte Innenansichten');
       text = text.replace(/gerenderte Ansicht(?!en)/g, 'gerenderte Ansichten');
-      text = text.replace(/(\d+)\s+3D-Grundriss(?!e)/g, '$1 3D-Grundrisse');
-      text = text.replace(/(\d+)\s+2D-Grundriss(?!e)/g, '$1 2D-Grundrisse');
-      text = text.replace(/(\d+)\s+3D-Geschossplan(?!.*ä)/g, '$1 3D-Geschosspläne');
-      text = text.replace(/(\d+)\s+Digital Home Staging Foto(?!s)/g, '$1 Digital Home Staging Fotos');
-      text = text.replace(/(\d+)\s+Digitales Renovierungsfoto(?!s)/g, '$1 Digitale Renovierungsfotos');
+      text = text.replace(/(\d+x?)\s+3D-Grundriss(?!e)/g, '$1 3D-Grundrisse');
+      text = text.replace(/(\d+x?)\s+2D-Grundriss(?!e)/g, '$1 2D-Grundrisse');
+      text = text.replace(/(\d+x?)\s+3D-Geschossplan(?!.*ä)/g, '$1 3D-Geschosspläne');
+      text = text.replace(/(\d+x?)\s+Digital Home Staging Foto(?!s)/g, '$1 Digital Home Staging Fotos');
+      text = text.replace(/(\d+x?)\s+Digitales Renovierungsfoto(?!s)/g, '$1 Digitale Renovierungsfotos');
       text = text.replace(/Bodenperspektive(?!n)/g, 'Bodenperspektiven');
     }
     return text;
@@ -115,22 +118,22 @@ export default function PreviewPage() {
     return items.map(item => {
       if (typeof item === 'string') {
         let text = item;
-        text = text.replace(/\{\{QUANTITY\}\}/g, quantity.toString());
-        // Update the number after "Geliefert werden/wird"
+        text = text.replace(/\{\{QUANTITY\}\}x?/g, `${quantity}x`);
+        // Update the number after "Geliefert werden/wird" (x suffix preserved automatically)
         text = text.replace(/(Geliefert (?:werden|wird)\s+)\d+/i, `$1${quantity}`);
-        // Update "Xx gerenderte" pattern (e.g. "3x gerenderte")
-        text = text.replace(/\d+x\s+gerenderte/i, `${quantity}x gerenderte`);
-        // Update quantity in "X 3D-Grundrisse" etc.
-        text = text.replace(/\d+(\s+(?:3D-Grundriss|2D-Grundriss|3D-Geschossplan|Digital Home Staging|Digitale Renovierung))/g, `${quantity}$1`);
+        // Update "Xx gerenderte" pattern (e.g. "3x gerenderte") – old or new format
+        text = text.replace(/\d+x?\s+gerenderte/i, `${quantity}x gerenderte`);
+        // Update quantity in "Xx 3D-Grundrisse" etc. – outputs with x
+        text = text.replace(/\d+x?(\s+(?:3D-Grundriss|2D-Grundriss|3D-Geschossplan|Digital Home Staging|Digitale Renovierung))/g, `${quantity}x$1`);
         text = adjustSingularPlural(text, quantity);
         return text;
       }
       let newItem = { ...item };
       if (newItem.text) {
-        newItem.text = newItem.text.replace(/\{\{QUANTITY\}\}/g, quantity.toString());
+        newItem.text = newItem.text.replace(/\{\{QUANTITY\}\}x?/g, `${quantity}x`);
         newItem.text = newItem.text.replace(/(Geliefert (?:werden|wird)\s+)\d+/i, `$1${quantity}`);
-        newItem.text = newItem.text.replace(/\d+x\s+gerenderte/i, `${quantity}x gerenderte`);
-        newItem.text = newItem.text.replace(/\d+(\s+(?:3D-Grundriss|2D-Grundriss|3D-Geschossplan|Digital Home Staging|Digitale Renovierung))/g, `${quantity}$1`);
+        newItem.text = newItem.text.replace(/\d+x?\s+gerenderte/i, `${quantity}x gerenderte`);
+        newItem.text = newItem.text.replace(/\d+x?(\s+(?:3D-Grundriss|2D-Grundriss|3D-Geschossplan|Digital Home Staging|Digitale Renovierung))/g, `${quantity}x$1`);
         newItem.text = adjustSingularPlural(newItem.text, quantity);
       }
       if (newItem.children && newItem.children.length > 0) {
@@ -267,12 +270,24 @@ export default function PreviewPage() {
           }
         }
         // Fixed pricing tiers for exterior-bird: 1=199€, 2=149€/view, ≥3=99€/view
+        // Also sync sub_name with the building type (same labels as exterior-ground)
         if (service.name === '3D-Außenvisualisierung Vogelperspektive') {
           service.pricingTiers = [
             { quantity: 1, price: 199, label: '1 Ansicht Netto: 199,00 €' },
             { quantity: 2, price: 149, label: '2 Ansichten: Netto pro Ansicht: 149,00 €' },
             { quantity: 3, price: 99,  label: '≥3 Ansichten: Netto pro Ansicht: 99,00 €' },
           ];
+          const buildingType = data.projectInfo?.projectType;
+          if (buildingType) {
+            const buildingTypeLabels: Record<string, string> = {
+              'EFH': 'EFH (Einfamilienhaus)',
+              'DHH': 'DHH (Doppelhaushälfte)',
+              'MFH-3-5': 'MFH (3-5 WE)',
+              'MFH-6-10': 'MFH (6-10 WE)',
+              'MFH-11-15': 'MFH (11-15 WE)'
+            };
+            service.sub_name = `(${buildingTypeLabels[buildingType] || buildingType})`;
+          }
         }
         // Set sub_name for 360° Tour Innen based on apartment size
         if (service.name === '360° Tour Innen' && service.apartmentSize) {
@@ -306,6 +321,15 @@ export default function PreviewPage() {
     }
     
     setProposalData(data);
+
+    // Fetch the real next offer number so the preview matches the Word document
+    const YY = data.projectInfo?.year || String(new Date().getFullYear());
+    const MM = data.projectInfo?.MM   || String(new Date().getMonth() + 1).padStart(2, '0');
+    const DD = data.projectInfo?.DD   || String(new Date().getDate()).padStart(2, '0');
+    fetch(`/api/next-offer-number?year=${YY}&month=${MM}&day=${DD}`)
+      .then(r => r.json())
+      .then(res => { if (res.offerNumber) setOfferNumber(res.offerNumber); })
+      .catch(() => setOfferNumber(`${YY}-${MM}-${DD}-8`));
 
     // Check if discount exists
     if (data.pricing?.discount && (data.pricing.discount.value || data.pricing.discount.amount)) {
@@ -793,7 +817,7 @@ export default function PreviewPage() {
     );
   }
 
-  const offerNumber = `2026-${proposalData.projectInfo.MM}-${proposalData.projectInfo.DD}-8`;
+  // offerNumber is fetched dynamically from /api/next-offer-number (see state above)
 
   // Determine if virtual tour is included (for conditional footnote text)
   const hasVirtualTour = proposalData.services?.some((s: any) => s.name?.includes('360° Tour'));

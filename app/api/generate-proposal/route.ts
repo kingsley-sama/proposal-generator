@@ -117,7 +117,8 @@ export async function POST(request: Request) {
         deliveryTime: projectInfo.deliveryTime || `${projectInfo.deliveryDays || 'XXX'} Werktage`,
         projectName: projectInfo.projectName || null,
         projectNumber: projectInfo.projectNumber || null,
-        year: yearForOffer
+        year: yearForOffer,
+        projectType: projectInfo.projectType || null
       },
       pricing: {
         subtotalNet: pricing.subtotalNet,
