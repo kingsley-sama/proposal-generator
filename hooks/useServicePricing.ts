@@ -56,11 +56,22 @@ export function useServicePricing() {
       }
 
       case 'exterior-bird': {
-        // Bird view pricing based on ground visualizations
-        if (quantity === 1) return 199;
-        if (quantity === 2) return 149 * 2;
-        if (quantity >= 3) return 99 * quantity;
-        return 0;
+        // Same pricing as exterior-ground (building-type based)
+        const birdBuildingType = options?.buildingType;
+        if (!birdBuildingType) return 0;
+        
+        const birdPriceMatrix: Record<string, number[]> = {
+          'efh': [499, 399, 369, 349, 329],
+          'dhh': [599, 499, 469, 449, 429],
+          'mfh': [799, 699, 669, 649, 629],
+          'gewerbe': [999, 899, 869, 849, 829]
+        };
+
+        const birdPrices = birdPriceMatrix[birdBuildingType];
+        if (!birdPrices) return 0;
+
+        const birdIndex = Math.min(quantity - 1, birdPrices.length - 1);
+        return birdPrices[birdIndex] * quantity;
       }
 
       case 'interior': {

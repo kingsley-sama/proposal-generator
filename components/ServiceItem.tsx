@@ -258,7 +258,7 @@ export function ServiceItem({
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-slate-800"
             />
             <span className="text-xs text-gray-700 mt-1 block">
-              {serviceId === 'exterior-bird' && 'Staffelpreise: 1=199€, 2=149€, 3+=99€ (nur mit Bodenperspektiven)'}
+              {serviceId === 'exterior-bird' && 'Preise wie Bodenperspektive (abhängig vom Gebäudetyp)'}
               {serviceId === '3d-complete-floor' && 'Preis: 199,00 € pro Geschoss'}
               {serviceId === 'home-staging' && 'Preis: 99,00 € pro Foto'}
               {serviceId === 'renovation' && 'Preis: 139,00 € pro Foto'}

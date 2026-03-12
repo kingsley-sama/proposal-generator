@@ -385,9 +385,20 @@ export default function ProposalFormPage() {
       }
       
       case 'exterior-bird': {
-        if (quantity === 1) return 199;
-        if (quantity === 2) return 149 * 2;
-        return 99 * quantity;
+        const birdBuildingType = projectInfo.projectType; // Use global building type
+        if (!birdBuildingType) return 0;
+        
+        const birdPriceMatrix: Record<string, number[]> = {
+          'EFH': [499, 349, 299, 229, 199],
+          'DHH': [599, 399, 359, 329, 299],
+          'MFH-3-5': [599, 399, 359, 329, 299],
+          'MFH-6-10': [699, 499, 399, 349, 329],
+          'MFH-11-15': [799, 599, 499, 399, 349]
+        };
+        
+        const birdPrices = birdPriceMatrix[birdBuildingType] || [0, 0, 0, 0, 0];
+        const birdUnitPrice = quantity <= 5 ? birdPrices[quantity - 1] : birdPrices[4];
+        return birdUnitPrice * quantity;
       }
       
       case '3d-floorplan': {

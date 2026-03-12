@@ -1520,7 +1520,21 @@
                 if (qty <= 5) return prices[qty - 1];
                 return prices[4]; // 5+
             },
-            'exterior-bird': () => 12,
+            'exterior-bird': (qty, buildingType) => {
+                if (qty === 0) return 0;
+                if (!buildingType) return 0;
+                
+                const priceMatrix = {
+                    'EFH': [499, 349, 299, 229, 199],
+                    'DHH': [599, 399, 359, 329, 299],
+                    'MFH-6-10': [699, 499, 399, 349, 329],
+                    'MFH-11-15': [799, 599, 499, 399, 349]
+                };
+                
+                const prices = priceMatrix[buildingType] || [0, 0, 0, 0, 0];
+                if (qty <= 5) return prices[qty - 1];
+                return prices[4];
+            },
             '3d-floorplan': (projectType, areaSize) => {
                 if (projectType === 'commercial') {
                     const commercialPrices = { '100': 99, '250': 199, '500': 299, '1000': 399, '1500': 499 };

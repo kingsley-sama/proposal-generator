@@ -269,16 +269,19 @@ export default function PreviewPage() {
             service.pricingTiers = [];
           }
         }
-        // Fixed pricing tiers for exterior-bird: 1=199€, 2=149€/view, ≥3=99€/view
+        // Bird view pricing: same as exterior-ground (building-type based)
         // Also sync sub_name with the building type (same labels as exterior-ground)
         if (service.name === '3D-Außenvisualisierung Vogelperspektive') {
-          service.pricingTiers = [
-            { quantity: 1, price: 199, label: '1 Ansicht Netto: 199,00 €' },
-            { quantity: 2, price: 149, label: '2 Ansichten: Netto pro Ansicht: 149,00 €' },
-            { quantity: 3, price: 99,  label: '≥3 Ansichten: Netto pro Ansicht: 99,00 €' },
-          ];
           const buildingType = data.projectInfo?.projectType;
           if (buildingType) {
+            const fmt = (p: number) => p.toFixed(2).replace('.', ',');
+            const birdPriceMatrix: Record<string, number[]> = {
+              'EFH': [499, 349, 299, 229, 199],
+              'DHH': [599, 399, 359, 329, 299],
+              'MFH-3-5': [599, 399, 359, 329, 299],
+              'MFH-6-10': [699, 499, 399, 349, 329],
+              'MFH-11-15': [799, 599, 499, 399, 349]
+            };
             const buildingTypeLabels: Record<string, string> = {
               'EFH': 'EFH (Einfamilienhaus)',
               'DHH': 'DHH (Doppelhaushälfte)',
@@ -287,6 +290,16 @@ export default function PreviewPage() {
               'MFH-11-15': 'MFH (11-15 WE)'
             };
             service.sub_name = `(${buildingTypeLabels[buildingType] || buildingType})`;
+            const birdPrices = birdPriceMatrix[buildingType];
+            if (birdPrices) {
+              service.pricingTiers = [
+                { quantity: 1, price: birdPrices[0], label: `1 Ansicht Netto: ${fmt(birdPrices[0])} €` },
+                { quantity: 2, price: birdPrices[1], label: `2 Ansichten: Netto pro Ansicht: ${fmt(birdPrices[1])} €` },
+                { quantity: 3, price: birdPrices[2], label: `3 Ansichten: Netto pro Ansicht: ${fmt(birdPrices[2])} €` },
+                { quantity: 4, price: birdPrices[3], label: `4 Ansichten: Netto pro Ansicht: ${fmt(birdPrices[3])} €` },
+                { quantity: 5, price: birdPrices[4], label: `≥5 Ansichten: Netto pro Ansicht: ${fmt(birdPrices[4])} €` },
+              ];
+            }
           }
         }
         // Set sub_name for 360° Tour Innen based on apartment size

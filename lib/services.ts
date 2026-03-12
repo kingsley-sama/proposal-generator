@@ -9,7 +9,7 @@ export const ALL_SERVICES = [
   {
     id: 'exterior-bird',
     name: '3D-Außenvisualisierung Vogelperspektive',
-    hasBuildingType: false,
+    hasBuildingType: true,
     hasApartmentSize: false,
     hasProjectType: false
   },
