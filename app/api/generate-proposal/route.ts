@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
-import path from 'path';
-import fs from 'fs';
-import https from 'https';
+import { promisify } from 'util';
+// @ts-ignore
+import libreConvert from 'libreoffice-convert';
 // @ts-ignore
 import TemplateDocxProposalGenerator from '@/lib/template-docx-generator';
 // @ts-ignore
-import { getClientDetails, getNextOfferNumber, save_proposal_detail } from '@/lib/utils';
+import { getClientDetails, getNextOfferNumber, save_proposal_detail, uploadProposalFiles } from '@/lib/utils';
+
+const libreConvertAsync = promisify(libreConvert.convert);
 
 export const runtime = 'nodejs'; // Required for fs
 
@@ -68,7 +70,7 @@ export async function POST(request: Request) {
         
         const sanitize = (str: string) => str ? String(str).replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50) : 'unknown';
         clientFolderName = `${sanitize(dbClientData.client_id || clientId)}_${sanitize(dbClientData.company_name)}`;
-        clientInfo.companyName = dbClientData.company_name || clientInfo.companyName;
+        clientInfo.companyName = clientInfo.companyName || dbClientData.company_name;
       } else {
         const sanitize = (str: string) => str ? String(str).replace(/[^a-zA-Z0-9]/g, '_').substring(0, 50) : 'unknown';
         clientFolderName = `${sanitize(clientId)}_${sanitize(clientInfo.companyName)}`;
@@ -135,11 +137,6 @@ export async function POST(request: Request) {
       terms: terms || {}
     };
     
-    const clientOutputDir = path.join(process.cwd(), 'output', clientFolderName);
-    if (!fs.existsSync(clientOutputDir)) {
-      fs.mkdirSync(clientOutputDir, { recursive: true });
-    }
-    
     const YY = projectInfo.date ? projectInfo.date.split('.')[2].slice(-2) : '26';
     const MM = projectInfo.MM || '01';
     const DD = projectInfo.DD || '01';
@@ -147,15 +144,26 @@ export async function POST(request: Request) {
       .replace(/[^a-zA-Z0-9äöüÄÖÜß\s&]/g, '')
       .substring(0, 50);
     const filename = `${YY}${MM}${DD}_Angebot_${safeCompanyName} ExposéProfi.docx`;
-    
+    const pdfFilename = filename.replace('.docx', '.pdf');
+
     const generator = new TemplateDocxProposalGenerator(docxData);
-    const outputPath = path.join(clientOutputDir, filename);
-    
-    await generator.generate(outputPath);
-    
+    const { buffer: docxBuffer } = await generator.generate();
+    const pdfBuffer: Buffer = await libreConvertAsync(docxBuffer, '.pdf', undefined);
+    console.log('✅ Files generated in memory');
+
+    // Upload DOCX + PDF to Supabase Storage
+    const storageFolderPath = `${clientFolderName}/${generatedOfferNumber}`;
+    let fileUrls: { docxUrl: string; pdfUrl: string; storagePath: string } | null = null;
+    try {
+      fileUrls = await uploadProposalFiles(docxBuffer, pdfBuffer, storageFolderPath);
+      console.log('✅ Files uploaded to Supabase Storage:', fileUrls.storagePath);
+    } catch (uploadError: any) {
+      console.error('⚠️  Storage upload failed (local file still exists):', uploadError.message);
+    }
+
     // Save to DB
     const proposalDbData = {
-      client_id: dbClientData ? dbClientData.client_id : null,
+      client_id: dbClientData ? (parseInt(dbClientData.client_id) || null) : null,
       company_name: clientInfo.companyName,
       street_no: clientInfo.street,
       city: clientInfo.city,
@@ -176,14 +184,22 @@ export async function POST(request: Request) {
         discount: pricing.discount
       },
       discount_type: pricing.discount?.type || null,
-      discount_value: pricing.discount?.amount || null,
+      discount_value: pricing.discount?.amount
+        ? parseFloat(String(pricing.discount.amount).replace(/\./g, '').replace(',', '.')) || null
+        : null,
       currency: 'EUR',
       total_price: parseFloat(pricing.totalGrossPrice?.replace(/[^0-9.,]/g, '').replace('.', '').replace(',', '.')) || null,
       image_urls: imageMetadata?.map((img: any) => ({ title: img.title, description: img.description })) || [],
-      document_url: null
+      document_url: fileUrls ? { docx: fileUrls.docxUrl, pdf: fileUrls.pdfUrl, folder: fileUrls.storagePath } : null
     };
 
-    await save_proposal_detail(proposalDbData);
+    let dbSaveError: string | null = null;
+    try {
+      await save_proposal_detail(proposalDbData);
+    } catch (dbError: any) {
+      dbSaveError = dbError.message;
+      console.error('⚠️  DB save failed (proposal still returned to user):', dbError.message);
+    }
 
     // Webhook (Fire and forget, or await)
     // For Serverless, better to await or it might be killed
@@ -212,50 +228,40 @@ export async function POST(request: Request) {
             signature: {
                 signatureName: signature?.signatureName || 'Christopher Helm'
             },
-            filename: `${clientFolderName}/${filename}`,
-            imagesIncluded: images.length
+            folderPath: clientFolderName,
+            docxFilename: filename,
+            pdfFilename: pdfFilename,
+            imagesIncluded: images.length,
+            docxUrl: fileUrls?.docxUrl || null,
+            pdfUrl:  fileUrls?.pdfUrl  || null,
         };
         const webhookUrl = 'https://n8n.exposeprofi.de/webhook/556fd7ca-ef28-4d00-b98e-9271b07a7bad';
-        const webhookData = JSON.stringify(webhookPayload);
-        
-        await new Promise<void>((resolve, reject) => {
-             const urlObj = new URL(webhookUrl);
-             const options = {
-                 hostname: urlObj.hostname,
-                 port: 443,
-                 path: urlObj.pathname,
-                 method: 'POST',
-                 headers: {
-                     'Content-Type': 'application/json',
-                     'Content-Length': Buffer.byteLength(webhookData)
-                 }
-             };
-             const req = https.request(options, (res) => {
-                 res.on('data', () => {});
-                 res.on('end', () => resolve());
-             });
-             req.on('error', reject);
-             req.write(webhookData);
-             req.end();
+        const webhookResponse = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(webhookPayload),
         });
+        if (!webhookResponse.ok) {
+            console.error('Webhook returned non-OK status:', webhookResponse.status);
+        }
     } catch (e) {
         console.error('Webhook error', e);
     }
     
-    const encodedFileUrl = `/output/${encodeURIComponent(clientFolderName)}/${encodeURIComponent(filename)}`;
-
     return NextResponse.json({
       success: true,
       message: 'Proposal generated successfully',
-      filename: `${clientFolderName}/${filename}`,
-      fileUrl: encodedFileUrl,
-      filePath: outputPath,
+      filename,
+      docxBase64: docxBuffer.toString('base64'),
+      docxUrl: fileUrls?.docxUrl || null,
+      pdfUrl: fileUrls?.pdfUrl || null,
       clientFolder: clientFolderName,
       offerNumber: generatedOfferNumber,
       clientName: clientInfo.companyName,
       totalAmount: pricing.totalGrossPrice,
       imagesIncluded: images.length,
-      clientDataFromDb: dbClientData ? true : false
+      clientDataFromDb: dbClientData ? true : false,
+      dbSaveError,
     });
     
   } catch (error: any) {

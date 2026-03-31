@@ -246,6 +246,15 @@ export default function ProposalFormPage() {
         setServiceDuplicates(duplicatesMap);
       }
 
+      if (data.pricing?.discount) {
+        const d = data.pricing.discount;
+        setDiscount({
+          type: d.type || '',
+          value: d.value || 0,
+          description: d.description || ''
+        });
+      }
+
       console.log('✅ Form data restored from localStorage');
     } catch (error) {
       console.error('Error loading saved data:', error);
@@ -622,6 +631,20 @@ export default function ProposalFormPage() {
       }
     });
 
+    // Compute pricing fresh from services (avoids stale totals state from async useEffect)
+    let freshSubtotal = 0;
+    services.forEach((s: any) => {
+      freshSubtotal += parseFloat(String(s.totalPrice).replace(',', '.')) || 0;
+    });
+    let freshDiscountAmount = 0;
+    if (discount.type && discount.value > 0) {
+      if (discount.type === 'percentage') freshDiscountAmount = freshSubtotal * (discount.value / 100);
+      else if (discount.type === 'fixed') freshDiscountAmount = discount.value;
+    }
+    const freshTotalNet = freshSubtotal - freshDiscountAmount;
+    const freshTotalVat = freshTotalNet * 0.19;
+    const freshTotalGross = freshTotalNet + freshTotalVat;
+
     const result: any = {
       clientInfo,
       projectInfo: {
@@ -639,10 +662,10 @@ export default function ProposalFormPage() {
         fileType: img.fileType
       })),
       pricing: {
-        subtotalNet: formatPriceForJSON(totals.subtotalNet),
-        totalNetPrice: formatPriceForJSON(totals.totalNet),
-        totalVat: formatPriceForJSON(totals.totalVat),
-        totalGrossPrice: formatPriceForJSON(totals.totalGross)
+        subtotalNet: formatPriceForJSON(freshSubtotal),
+        totalNetPrice: formatPriceForJSON(freshTotalNet),
+        totalVat: formatPriceForJSON(freshTotalVat),
+        totalGrossPrice: formatPriceForJSON(freshTotalGross)
       },
       signature: {
         signatureName: 'Christopher Helm'
@@ -650,11 +673,14 @@ export default function ProposalFormPage() {
     };
 
     if (discount.type && discount.value > 0) {
+      const discountDescription = discount.type === 'percentage'
+        ? `${discount.value}% ${discount.description}`.trim()
+        : discount.description;
       result.pricing.discount = {
         type: discount.type,
         value: discount.value,
-        amount: formatPriceForJSON(totals.discountAmount),
-        description: discount.description
+        amount: formatPriceForJSON(freshDiscountAmount),
+        description: discountDescription
       };
     }
 
@@ -1033,7 +1059,6 @@ export default function ProposalFormPage() {
             {ALL_SERVICES.flatMap((service) => {
               // Helper to build props for any instance (original or copy)
               const buildItemProps = (instanceKey: string, instanceName: string, isCopy: boolean) => ({
-                key: instanceKey,
                 serviceId: instanceKey,
                 serviceName: instanceName,
                 isActive: activeServices.has(instanceKey),
@@ -1060,9 +1085,9 @@ export default function ProposalFormPage() {
 
               const copies = serviceDuplicates[service.id] || [];
               return [
-                <ServiceItem {...buildItemProps(service.id, service.name, false)} />,
+                <ServiceItem key={service.id} {...buildItemProps(service.id, service.name, false)} />,
                 ...copies.map((copyKey, idx) => (
-                  <ServiceItem {...buildItemProps(copyKey, `${service.name} (Kopie ${idx + 2})`, true)} />
+                  <ServiceItem key={copyKey} {...buildItemProps(copyKey, `${service.name} (Kopie ${idx + 2})`, true)} />
                 ))
               ];
             })}
@@ -1233,7 +1258,7 @@ export default function ProposalFormPage() {
                       type="text"
                       value={discount.description}
                       onChange={(e) => setDiscount(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="z.B. Mengenrabatt, Sonderaktion"
+                      placeholder={discount.type === 'percentage' ? 'z.B. Stammkundenrabatt' : 'z.B. Mengenrabatt, Sonderaktion'}
                       className="w-full px-4 py-3.5 border border-gray-300 rounded-lg text-base text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800"
                     />
                   </div>
@@ -1242,8 +1267,23 @@ export default function ProposalFormPage() {
             </div>
           </div>
 
-          {/* Summary */}
-          <Summary totals={totals} discount={discount} formatPrice={formatPrice} />
+          {/* Summary — compute discount values inline so they update on every keystroke */}
+          {(() => {
+            const liveDiscountAmount = discount.type === 'percentage' && discount.value > 0
+              ? totals.subtotalNet * (discount.value / 100)
+              : discount.type === 'fixed' && discount.value > 0
+                ? discount.value
+                : 0;
+            const liveTotalNet = totals.subtotalNet - liveDiscountAmount;
+            const liveTotals = {
+              subtotalNet: totals.subtotalNet,
+              discountAmount: liveDiscountAmount,
+              totalNet: liveTotalNet,
+              totalVat: liveTotalNet * 0.19,
+              totalGross: liveTotalNet * 1.19,
+            };
+            return <Summary totals={liveTotals} discount={discount} formatPrice={formatPrice} />;
+          })()}
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3 justify-center mt-8">

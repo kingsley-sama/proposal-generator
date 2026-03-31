@@ -34,9 +34,8 @@ export default function PreviewPage() {
   const [proposalData, setProposalData] = useState<ProposalData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [hasDiscount, setHasDiscount] = useState(false);
-  const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('fixed');
   const [discountValue, setDiscountValue] = useState('0');
-  const [discountDescription, setDiscountDescription] = useState('Mengenrabatt');
+  const [discountDescription, setDiscountDescription] = useState('');
   const [showBulletModal, setShowBulletModal] = useState(false);
   const [bulletModalServiceIndex, setBulletModalServiceIndex] = useState<number | null>(null);
   const [bulletInputText, setBulletInputText] = useState('');
@@ -347,9 +346,13 @@ export default function PreviewPage() {
     // Check if discount exists
     if (data.pricing?.discount && (data.pricing.discount.value || data.pricing.discount.amount)) {
       setHasDiscount(true);
-      setDiscountType(data.pricing.discount.type || 'fixed');
-      setDiscountValue(data.pricing.discount.value?.toString() || data.pricing.discount.amount || '0');
-      setDiscountDescription(data.pricing.discount.description || 'Mengenrabatt');
+      // Only restore discount value if it was percentage-based; fixed EUR amounts don't map to %
+      const storedType = data.pricing.discount.type;
+      const storedValue = storedType === 'percentage'
+        ? (data.pricing.discount.value?.toString() || '0')
+        : '0';
+      setDiscountValue(storedValue);
+      setDiscountDescription(data.pricing.discount.description || '');
     }
   };
 
@@ -618,7 +621,7 @@ export default function PreviewPage() {
     updateProposalData({ services: newServices });
   };
 
-  const computePricing = (servicesData: any[]) => {
+  const computePricing = (servicesData: any[], applyDiscount = hasDiscount) => {
     let subtotal = 0;
     servicesData.forEach((service: any) => {
       const qty = parseInt(service.quantity) || 0;
@@ -627,13 +630,9 @@ export default function PreviewPage() {
     });
 
     let discountAmount = 0;
-    if (hasDiscount && discountValue) {
+    if (applyDiscount && discountValue) {
       const value = parseFloat(discountValue.replace(',', '.'));
-      if (discountType === 'percentage') {
-        discountAmount = subtotal * (value / 100);
-      } else {
-        discountAmount = value;
-      }
+      discountAmount = subtotal * (value / 100);
     }
 
     const totalNet = subtotal - discountAmount;
@@ -648,21 +647,24 @@ export default function PreviewPage() {
       totalVat: fmt(totalVat),
       totalGrossPrice: fmt(totalGross),
     };
-    if (hasDiscount) {
+    if (applyDiscount) {
+      const fullDescription = `${discountValue}% ${discountDescription}`.trim();
       pricing.discount = {
-        type: discountType,
+        type: 'percentage',
         value: discountValue,
         amount: fmt(discountAmount),
-        description: discountDescription,
+        description: fullDescription,
       };
+    } else {
+      delete pricing.discount;
     }
     return pricing;
   };
 
-  const recalculateTotals = (services?: any[]) => {
+  const recalculateTotals = (services?: any[], applyDiscount?: boolean) => {
     if (!proposalData) return;
     const servicesData = services || proposalData.services;
-    const newPricing = computePricing(servicesData);
+    const newPricing = computePricing(servicesData, applyDiscount ?? hasDiscount);
     updateProposalData({ pricing: newPricing });
   };
 
@@ -670,7 +672,7 @@ export default function PreviewPage() {
     if (proposalData && hasDiscount) {
       recalculateTotals();
     }
-  }, [discountType, discountValue, hasDiscount, discountDescription]);
+  }, [discountValue, hasDiscount, discountDescription]);
 
   // Helper: find the matching tier price for a given quantity
   const getTierPriceForQuantity = (tiers: any[], qty: number): number | null => {
@@ -729,13 +731,14 @@ export default function PreviewPage() {
 
   const calculatePercentageDiscount = () => {
     if (!proposalData) return '0,00';
-    const subtotalText = proposalData.pricing.subtotalNet || '0';
-    const subtotal = parseFloat(subtotalText.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-    
     const percentage = parseFloat(discountValue.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-    
-    const discountAmount = (subtotal * percentage / 100);
-    return discountAmount.toFixed(2).replace('.', ',');
+    let subtotal = 0;
+    proposalData.services.forEach((service: any) => {
+      const qty = parseInt(service.quantity) || 0;
+      const price = parseFloat(service.unitPrice?.toString().replace(',', '.')) || 0;
+      subtotal += qty * price;
+    });
+    return (subtotal * percentage / 100).toFixed(2).replace('.', ',');
   };
 
   const handleGenerateProposal = async () => {
@@ -754,15 +757,18 @@ export default function PreviewPage() {
 
       if (response.ok && result.success) {
         alert(`✅ Angebot erfolgreich erstellt!\n\nAngebotsnummer: ${result.offerNumber}\nKunde: ${result.clientName}\nGesamt: ${result.totalAmount} €`);
-        
-        if (result.fileUrl) {
-          // Use a hidden link to trigger download instead of window.open
+
+        if (result.docxBase64) {
+          const bytes = Uint8Array.from(atob(result.docxBase64), c => c.charCodeAt(0));
+          const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+          const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.href = result.fileUrl;
-          a.download = result.filename?.split('/').pop() || 'Angebot.docx';
+          a.href = url;
+          a.download = result.filename || 'Angebot.docx';
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
+          URL.revokeObjectURL(url);
         }
       } else {
         throw new Error(result.error || 'Failed to generate proposal');
@@ -781,19 +787,13 @@ export default function PreviewPage() {
       return;
     }
     setHasDiscount(true);
-    recalculateTotals();
+    recalculateTotals(undefined, true);
   };
 
   const removeDiscount = () => {
     setHasDiscount(false);
     setDiscountValue('0');
-    if (proposalData) {
-      const newData = { ...proposalData };
-      delete newData.pricing.discount;
-      setProposalData(newData);
-      localStorage.setItem('proposalPreviewData', JSON.stringify(newData));
-      recalculateTotals();
-    }
+    recalculateTotals(undefined, false);
   };
 
   const handleEditableBlur = (path: string, e: React.FocusEvent<HTMLSpanElement>) => {
@@ -1242,7 +1242,6 @@ export default function PreviewPage() {
                   <td className="border border-gray-800 p-1.5 w-[30%] text-center text-gray-900">
                     <strong>
                       <span
-                        key={`subtotal-${proposalData.pricing.subtotalNet}`}
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.subtotalNet', e)}
@@ -1260,11 +1259,10 @@ export default function PreviewPage() {
                     <td className="border border-gray-800 p-1.5 text-gray-900">
                       <strong>
                         Rabatt: <span
-                          key={`disc-desc-${discountDescription}`}
                           contentEditable
                           suppressContentEditableWarning
                           onBlur={(e) => {
-                            const newDesc = e.currentTarget.textContent || 'Mengenrabatt';
+                            const newDesc = e.currentTarget.textContent || '';
                             setDiscountDescription(newDesc);
                           }}
                           onKeyDown={handleEnterKey}
@@ -1276,16 +1274,7 @@ export default function PreviewPage() {
                     </td>
                     <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                       <strong className="text-amber-700">
-                        <select
-                          value={discountType}
-                          onChange={(e) => setDiscountType(e.target.value as 'percentage' | 'fixed')}
-                          className="px-2 py-1 mr-2 border border-gray-300 rounded text-gray-900 bg-white"
-                        >
-                          <option value="fixed">EUR</option>
-                          <option value="percentage">%</option>
-                        </select>
                         - <span
-                          key={`disc-val-${discountValue}`}
                           contentEditable
                           suppressContentEditableWarning
                           onBlur={(e) => {
@@ -1297,12 +1286,10 @@ export default function PreviewPage() {
                         >
                           {discountValue}
                         </span>
-                        {discountType === 'percentage' ? '% ' : ' €'}
-                        {discountType === 'percentage' && (
-                          <span className="text-gray-600 text-[9pt] ml-1">
-                            ({calculatePercentageDiscount()} €)
-                          </span>
-                        )}
+                        {'% '}
+                        <span className="text-gray-600 text-[9pt] ml-1">
+                          ({calculatePercentageDiscount()} €)
+                        </span>
                         <button
                           onClick={removeDiscount}
                           className="ml-2 text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
@@ -1321,7 +1308,6 @@ export default function PreviewPage() {
                   <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                     <strong>
                       <span
-                        key={`totalnet-${proposalData.pricing.totalNetPrice}`}
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.totalNetPrice', e)}
@@ -1341,7 +1327,6 @@ export default function PreviewPage() {
                   <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                     <strong>
                       <span
-                        key={`vat-${proposalData.pricing.totalVat}`}
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.totalVat', e)}
@@ -1361,7 +1346,6 @@ export default function PreviewPage() {
                   <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                     <strong>
                       <span
-                        key={`gross-${proposalData.pricing.totalGrossPrice}`}
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.totalGrossPrice', e)}
@@ -1388,7 +1372,6 @@ export default function PreviewPage() {
             <p className="mt-8 mb-5 text-gray-900">
               <strong>
                 <span
-                  key={`validuntiltext-${proposalData.terms?.validUntilText}`}
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.validUntilText', e)}
@@ -1398,7 +1381,6 @@ export default function PreviewPage() {
                   {proposalData.terms?.validUntilText || 'Dieses Angebot ist gültig bis:'}
                 </span>{' '}
                 <span
-                  key={`offervalid-${proposalData.projectInfo.offerValidUntil}`}
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('projectInfo.offerValidUntil', e)}
@@ -1415,7 +1397,6 @@ export default function PreviewPage() {
               <p className="mb-2">
                 <strong>Lieferweg:</strong>{' '}
                 <span
-                  key={`deliverymethod-${proposalData.terms?.deliveryMethod}`}
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.deliveryMethod', e)}
@@ -1428,7 +1409,6 @@ export default function PreviewPage() {
               <p className="mb-2">
                 <strong>Voraussichtl. Leistungsdatum:</strong>{' '}
                 <span
-                  key={`deliverytime-${proposalData.projectInfo.deliveryTime}`}
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => {
@@ -1441,7 +1421,6 @@ export default function PreviewPage() {
                 </span>
                 {' Arbeitstage '}
                 <span
-                  key={`deliverydaystext-${proposalData.pricing?.totalNetPrice}`}
                   contentEditable
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.deliveryDaysText', e)}
@@ -1465,7 +1444,6 @@ export default function PreviewPage() {
 
             <p className="mb-5 italic text-gray-900">
               <span
-                key={`closinggreeting-${proposalData.terms?.closingGreeting}`}
                 contentEditable
                 suppressContentEditableWarning
                 onBlur={(e) => handleEditableBlur('terms.closingGreeting', e)}
@@ -1476,7 +1454,6 @@ export default function PreviewPage() {
               </span>
               <br />
               <span
-                key={`signame-${proposalData.signature.signatureName}`}
                 contentEditable
                 suppressContentEditableWarning
                 onBlur={(e) => handleEditableBlur('signature.signatureName', e)}

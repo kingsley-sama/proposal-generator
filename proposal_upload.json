@@ -1,0 +1,147 @@
+{
+  "name": "Proposal Upload to SharePoint",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "556fd7ca-ef28-4d00-b98e-9271b07a7bad",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-200, 200],
+      "id": "421833f7-3f12-4f76-b2d8-bde7b7559de9",
+      "name": "Webhook",
+      "webhookId": "556fd7ca-ef28-4d00-b98e-9271b07a7bad"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.body.docxUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [60, 80],
+      "id": "11111111-1111-1111-1111-111111111101",
+      "name": "Download DOCX"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Webhook').item.json.body.pdfUrl }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [60, 340],
+      "id": "11111111-1111-1111-1111-111111111102",
+      "name": "Download PDF"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "site": {
+          "__rl": true,
+          "value": "exposeprofi.sharepoint.com,06bf948f-b86d-4e3a-861f-5d09c3c18034,79725fd7-bd81-426a-b070-2b1172d4b30f",
+          "mode": "list",
+          "cachedResultName": "Exposeprofi"
+        },
+        "folder": {
+          "__rl": true,
+          "value": "012WGS7KFILSUHZ6X7L5EZGMS6Q7EHETEI",
+          "mode": "list",
+          "cachedResultName": "Proposal_Generation"
+        },
+        "fileName": "={{ $('Webhook').item.json.body.docxFilename }}",
+        "fileContents": "data",
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.microsoftSharePoint",
+      "typeVersion": 1,
+      "position": [320, 80],
+      "id": "11111111-1111-1111-1111-111111111103",
+      "name": "Upload DOCX to SharePoint",
+      "credentials": {
+        "microsoftSharePointOAuth2Api": {
+          "id": "pYk4nIQJEeJoNVQ4",
+          "name": "Microsoft SharePoint account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "site": {
+          "__rl": true,
+          "value": "exposeprofi.sharepoint.com,06bf948f-b86d-4e3a-861f-5d09c3c18034,79725fd7-bd81-426a-b070-2b1172d4b30f",
+          "mode": "list",
+          "cachedResultName": "Exposeprofi"
+        },
+        "folder": {
+          "__rl": true,
+          "value": "012WGS7KFILSUHZ6X7L5EZGMS6Q7EHETEI",
+          "mode": "list",
+          "cachedResultName": "Proposal_Generation"
+        },
+        "fileName": "={{ $('Webhook').item.json.body.pdfFilename }}",
+        "fileContents": "data",
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.microsoftSharePoint",
+      "typeVersion": 1,
+      "position": [320, 340],
+      "id": "11111111-1111-1111-1111-111111111104",
+      "name": "Upload PDF to SharePoint",
+      "credentials": {
+        "microsoftSharePointOAuth2Api": {
+          "id": "pYk4nIQJEeJoNVQ4",
+          "name": "Microsoft SharePoint account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Download DOCX", "type": "main", "index": 0 },
+          { "node": "Download PDF",  "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Download DOCX": {
+      "main": [
+        [
+          { "node": "Upload DOCX to SharePoint", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Download PDF": {
+      "main": [
+        [
+          { "node": "Upload PDF to SharePoint", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f6f3efcb2394b456105829877cc7d77526d26fb46273064b38233e0c937d9f43"
+  }
+}
