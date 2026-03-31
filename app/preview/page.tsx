@@ -27,6 +27,27 @@ interface ServiceDescription {
   link?: string;
 }
 
+const stripLeadingPercentageTokens = (value: string): string => {
+  if (!value) return '';
+  return value.replace(/^(\s*\d+(?:[.,]\d+)?%\s*)+/g, '').trim();
+};
+
+const getLastLeadingPercentageValue = (value: string): number => {
+  const leadingBlock = value.match(/^(\s*\d+(?:[.,]\d+)?%\s*)+/)?.[0] || '';
+  const matches = Array.from(leadingBlock.matchAll(/(\d+(?:[.,]\d+)?)%/g));
+  if (matches.length === 0) return 0;
+  const last = matches[matches.length - 1][1];
+  return parseFloat(last.replace(',', '.')) || 0;
+};
+
+const buildCanonicalPercentageDiscountDescription = (
+  numericValue: number,
+  rawDescription: string
+): string => {
+  const cleanDescription = stripLeadingPercentageTokens(rawDescription || '');
+  return cleanDescription ? `${numericValue}% ${cleanDescription}` : `${numericValue}%`;
+};
+
 export default function PreviewPage() {
   const router = useRouter();
   const { showNotification } = useNotification();
@@ -344,15 +365,30 @@ export default function PreviewPage() {
       .catch(() => setOfferNumber(`${YY}-${MM}-${DD}-8`));
 
     // Check if discount exists
-    if (data.pricing?.discount && (data.pricing.discount.value || data.pricing.discount.amount)) {
+    if (data.pricing?.discount) {
+      const storedDiscount = data.pricing.discount;
+      const normalizedDescription = stripLeadingPercentageTokens(storedDiscount.description || '');
+      const numericValue = Number(storedDiscount.value) || getLastLeadingPercentageValue(storedDiscount.description || '');
+      const hasValidDiscount = numericValue > 0;
+
+      if (hasValidDiscount) {
       setHasDiscount(true);
-      // Only restore discount value if it was percentage-based; fixed EUR amounts don't map to %
-      const storedType = data.pricing.discount.type;
-      const storedValue = storedType === 'percentage'
-        ? (data.pricing.discount.value?.toString() || '0')
-        : '0';
-      setDiscountValue(storedValue);
-      setDiscountDescription(data.pricing.discount.description || '');
+      setDiscountValue(String(numericValue));
+      setDiscountDescription(normalizedDescription);
+
+      // Persist a cleaned, canonical discount payload so generation cannot reuse stale text.
+      data.pricing.discount = {
+        ...storedDiscount,
+        type: 'percentage',
+        value: numericValue,
+        description: buildCanonicalPercentageDiscountDescription(numericValue, normalizedDescription)
+      };
+      } else {
+        setHasDiscount(false);
+        setDiscountValue('0');
+        setDiscountDescription('');
+        delete data.pricing.discount;
+      }
     }
   };
 
@@ -630,9 +666,10 @@ export default function PreviewPage() {
     });
 
     let discountAmount = 0;
-    if (applyDiscount && discountValue) {
-      const value = parseFloat(discountValue.replace(',', '.'));
-      discountAmount = subtotal * (value / 100);
+    const numericDiscountValue = parseFloat((discountValue || '0').replace(',', '.')) || 0;
+
+    if (applyDiscount && numericDiscountValue > 0) {
+      discountAmount = subtotal * (numericDiscountValue / 100);
     }
 
     const totalNet = subtotal - discountAmount;
@@ -647,11 +684,11 @@ export default function PreviewPage() {
       totalVat: fmt(totalVat),
       totalGrossPrice: fmt(totalGross),
     };
-    if (applyDiscount) {
-      const fullDescription = `${discountValue}% ${discountDescription}`.trim();
+    if (applyDiscount && numericDiscountValue > 0) {
+      const fullDescription = buildCanonicalPercentageDiscountDescription(numericDiscountValue, discountDescription);
       pricing.discount = {
         type: 'percentage',
-        value: discountValue,
+        value: numericDiscountValue,
         amount: fmt(discountAmount),
         description: fullDescription,
       };
@@ -793,6 +830,7 @@ export default function PreviewPage() {
   const removeDiscount = () => {
     setHasDiscount(false);
     setDiscountValue('0');
+    setDiscountDescription('');
     recalculateTotals(undefined, false);
   };
 

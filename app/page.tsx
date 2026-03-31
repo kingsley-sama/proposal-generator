@@ -65,6 +65,31 @@ interface ImageData {
   imageData?: string;
 }
 
+const stripLeadingPercentageTokens = (value: string): string => {
+  if (!value) return '';
+  return value.replace(/^(\s*\d+(?:[.,]\d+)?%\s*)+/g, '').trim();
+};
+
+const getLastLeadingPercentageValue = (value: string): number => {
+  const leadingBlock = value.match(/^(\s*\d+(?:[.,]\d+)?%\s*)+/)?.[0] || '';
+  const matches = Array.from(leadingBlock.matchAll(/(\d+(?:[.,]\d+)?)%/g));
+  if (matches.length === 0) return 0;
+  const last = matches[matches.length - 1][1];
+  return parseFloat(last.replace(',', '.')) || 0;
+};
+
+const buildCanonicalDiscountDescription = (
+  type: string,
+  numericValue: number,
+  rawDescription: string
+): string => {
+  const cleanDescription = stripLeadingPercentageTokens(rawDescription || '');
+  if (type === 'percentage' && numericValue > 0) {
+    return cleanDescription ? `${numericValue}% ${cleanDescription}` : `${numericValue}%`;
+  }
+  return cleanDescription;
+};
+
 export default function ProposalFormPage() {
   const router = useRouter();
   const { showNotification } = useNotification();
@@ -248,10 +273,14 @@ export default function ProposalFormPage() {
 
       if (data.pricing?.discount) {
         const d = data.pricing.discount;
+        const normalizedValue = Number(d.value) || 0;
+        const recoveredPercentageValue = d.type === 'percentage' && normalizedValue <= 0
+          ? getLastLeadingPercentageValue(d.description || '')
+          : normalizedValue;
         setDiscount({
           type: d.type || '',
-          value: d.value || 0,
-          description: d.description || ''
+          value: recoveredPercentageValue,
+          description: stripLeadingPercentageTokens(d.description || '')
         });
       }
 
@@ -673,9 +702,11 @@ export default function ProposalFormPage() {
     };
 
     if (discount.type && discount.value > 0) {
-      const discountDescription = discount.type === 'percentage'
-        ? `${discount.value}% ${discount.description}`.trim()
-        : discount.description;
+      const discountDescription = buildCanonicalDiscountDescription(
+        discount.type,
+        discount.value,
+        discount.description
+      );
       result.pricing.discount = {
         type: discount.type,
         value: discount.value,

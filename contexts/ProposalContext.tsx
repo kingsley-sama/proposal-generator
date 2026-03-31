@@ -141,6 +141,30 @@ const ProposalContext = createContext<ProposalContextType | undefined>(undefined
 const STORAGE_KEY = 'proposalFormData';
 const AUTOSAVE_INTERVAL = 5000;
 
+const stripLeadingPercentageTokens = (value: string): string => {
+  if (!value) return '';
+  return value.replace(/^(\s*\d+(?:[.,]\d+)?%\s*)+/g, '').trim();
+};
+
+const toCanonicalDiscount = (discount: DiscountInfo): DiscountInfo => {
+  const numericValue = Number(discount.value) || 0;
+  const cleanDescription = stripLeadingPercentageTokens(discount.description || '');
+
+  if (discount.type === 'percentage' && numericValue > 0) {
+    return {
+      ...discount,
+      value: numericValue,
+      description: cleanDescription ? `${numericValue}% ${cleanDescription}` : `${numericValue}%`
+    };
+  }
+
+  return {
+    ...discount,
+    value: numericValue,
+    description: cleanDescription
+  };
+};
+
 // Initial state
 const createInitialState = (): ProposalState => ({
   clientInfo: {
@@ -388,11 +412,12 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateDiscount = useCallback((discount: DiscountInfo) => {
+    const normalizedDiscount = toCanonicalDiscount(discount);
     setState(prev => ({
       ...prev,
       pricing: {
         ...prev.pricing,
-        discount
+        discount: normalizedDiscount
       }
     }));
   }, []);
@@ -477,6 +502,9 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
       if (!savedData) return;
 
       const data = JSON.parse(savedData);
+      if (data?.pricing?.discount) {
+        data.pricing.discount = toCanonicalDiscount(data.pricing.discount);
+      }
       console.log('📂 Loading saved proposal data...');
       
       setState(data);
