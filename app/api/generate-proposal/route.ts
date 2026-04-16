@@ -120,7 +120,8 @@ export async function POST(request: Request) {
         projectName: projectInfo.projectName || null,
         projectNumber: projectInfo.projectNumber || null,
         year: yearForOffer,
-        projectType: projectInfo.projectType || null
+        projectType: projectInfo.projectType || null,
+        customProjectType: projectInfo.customProjectType || null
       },
       pricing: {
         subtotalNet: pricing.subtotalNet,

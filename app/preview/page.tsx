@@ -48,6 +48,12 @@ const buildCanonicalPercentageDiscountDescription = (
   return cleanDescription ? `${numericValue}% ${cleanDescription}` : `${numericValue}%`;
 };
 
+const parseLocalizedNumber = (value: any): number => {
+  if (value === null || value === undefined) return 0;
+  const normalized = String(value).replace(/[^0-9,.-]/g, '').replace(/\./g, '').replace(',', '.');
+  return parseFloat(normalized) || 0;
+};
+
 export default function PreviewPage() {
   const router = useRouter();
   const { showNotification } = useNotification();
@@ -72,7 +78,7 @@ export default function PreviewPage() {
       if (!items) return '';
       let result = '';
       items.forEach(item => {
-          const text = typeof item === 'string' ? item : item.text;
+          const text = (typeof item === 'string' ? item : item.text || '').trimEnd();
           const dashes = '-'.repeat(level + 1);
           result += `${dashes} ${text}\n`;
           if (item.children && item.children.length > 0) {
@@ -176,10 +182,10 @@ export default function PreviewPage() {
         text = text.replace(/\{\{QUANTITY\}\}/g, context.quantity.toString());
         // Adjust singular/plural
         text = adjustSingularPlural(text, qty);
-        
-        return text;
+
+        return text.trimEnd();
       }
-      
+
       // Handle object items
       let newItem = { ...item };
       if (newItem.text) {
@@ -187,7 +193,7 @@ export default function PreviewPage() {
         newItem.text = newItem.text.replace(/\{\{PROJECT_NAME\}\}/g, context.projectName);
         newItem.text = newItem.text.replace(/\{\{QUANTITY\}\}/g, context.quantity.toString());
         // Adjust singular/plural
-        newItem.text = adjustSingularPlural(newItem.text, qty);
+        newItem.text = adjustSingularPlural(newItem.text, qty).trimEnd();
       }
       
       if (newItem.children && newItem.children.length > 0) {
@@ -258,7 +264,7 @@ export default function PreviewPage() {
         if (service.name === '3D-Außenvisualisierung Bodenperspektive') {
           const buildingType = data.projectInfo?.projectType;
           if (buildingType) {
-            const fmt = (p: number) => p.toFixed(2).replace('.', ',');
+            const fmt = (p: number) => p.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
             const priceMatrix: Record<string, number[]> = {
               'EFH': [499, 349, 299, 229, 199],
               'DHH': [599, 399, 359, 329, 299],
@@ -273,8 +279,11 @@ export default function PreviewPage() {
               'MFH-6-10': 'MFH (6-10 WE)',
               'MFH-11-15': 'MFH (11-15 WE)'
             };
-            // Auto-update sub_name with the building type label
-            service.sub_name = `(${buildingTypeLabels[buildingType] || buildingType})`;
+            // Auto-update sub_name with the building type label; use customProjectType for 'Custom'
+            const resolvedLabel = buildingType === 'Custom'
+              ? (data.projectInfo?.customProjectType || 'Custom')
+              : (buildingTypeLabels[buildingType] || buildingType);
+            service.sub_name = `(${resolvedLabel})`;
             const prices = priceMatrix[buildingType];
             if (prices) {
               service.pricingTiers = [
@@ -283,6 +292,15 @@ export default function PreviewPage() {
                 { quantity: 3, price: prices[2], label: `3 Ansichten: Netto pro Ansicht: ${fmt(prices[2])} €` },
                 { quantity: 4, price: prices[3], label: `4 Ansichten: Netto pro Ansicht: ${fmt(prices[3])} €` },
                 { quantity: 5, price: prices[4], label: `≥5 Ansichten: Netto pro Ansicht: ${fmt(prices[4])} €` },
+              ];
+            } else {
+              // Custom building type: generate editable placeholder tiers
+              service.pricingTiers = [
+                { quantity: 1, price: 0, label: `1 Ansicht Netto: ${fmt(0)} €` },
+                { quantity: 2, price: 0, label: `2 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
+                { quantity: 3, price: 0, label: `3 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
+                { quantity: 4, price: 0, label: `4 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
+                { quantity: 5, price: 0, label: `≥5 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
               ];
             }
           } else {
@@ -294,7 +312,7 @@ export default function PreviewPage() {
         if (service.name === '3D-Außenvisualisierung Vogelperspektive') {
           const buildingType = data.projectInfo?.projectType;
           if (buildingType) {
-            const fmt = (p: number) => p.toFixed(2).replace('.', ',');
+            const fmt = (p: number) => p.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
             const birdPriceMatrix: Record<string, number[]> = {
               'EFH': [499, 349, 299, 229, 199],
               'DHH': [599, 399, 359, 329, 299],
@@ -309,7 +327,10 @@ export default function PreviewPage() {
               'MFH-6-10': 'MFH (6-10 WE)',
               'MFH-11-15': 'MFH (11-15 WE)'
             };
-            service.sub_name = `(${buildingTypeLabels[buildingType] || buildingType})`;
+            const resolvedBirdLabel = buildingType === 'Custom'
+              ? (data.projectInfo?.customProjectType || 'Custom')
+              : (buildingTypeLabels[buildingType] || buildingType);
+            service.sub_name = `(${resolvedBirdLabel})`;
             const birdPrices = birdPriceMatrix[buildingType];
             if (birdPrices) {
               service.pricingTiers = [
@@ -318,6 +339,15 @@ export default function PreviewPage() {
                 { quantity: 3, price: birdPrices[2], label: `3 Ansichten: Netto pro Ansicht: ${fmt(birdPrices[2])} €` },
                 { quantity: 4, price: birdPrices[3], label: `4 Ansichten: Netto pro Ansicht: ${fmt(birdPrices[3])} €` },
                 { quantity: 5, price: birdPrices[4], label: `≥5 Ansichten: Netto pro Ansicht: ${fmt(birdPrices[4])} €` },
+              ];
+            } else {
+              // Custom building type: generate editable placeholder tiers
+              service.pricingTiers = [
+                { quantity: 1, price: 0, label: `1 Ansicht Netto: ${fmt(0)} €` },
+                { quantity: 2, price: 0, label: `2 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
+                { quantity: 3, price: 0, label: `3 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
+                { quantity: 4, price: 0, label: `4 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
+                { quantity: 5, price: 0, label: `≥5 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
               ];
             }
           }
@@ -367,27 +397,34 @@ export default function PreviewPage() {
     // Check if discount exists
     if (data.pricing?.discount) {
       const storedDiscount = data.pricing.discount;
-      const normalizedDescription = stripLeadingPercentageTokens(storedDiscount.description || '');
-      const numericValue = Number(storedDiscount.value) || getLastLeadingPercentageValue(storedDiscount.description || '');
-      const hasValidDiscount = numericValue > 0;
-
-      if (hasValidDiscount) {
-      setHasDiscount(true);
-      setDiscountValue(String(numericValue));
-      setDiscountDescription(normalizedDescription);
-
-      // Persist a cleaned, canonical discount payload so generation cannot reuse stale text.
-      data.pricing.discount = {
-        ...storedDiscount,
-        type: 'percentage',
-        value: numericValue,
-        description: buildCanonicalPercentageDiscountDescription(numericValue, normalizedDescription)
-      };
-      } else {
+      if (storedDiscount.type === 'fixed') {
+        // Preview UI only edits percentage discounts; keep fixed discounts in payload untouched.
         setHasDiscount(false);
         setDiscountValue('0');
-        setDiscountDescription('');
-        delete data.pricing.discount;
+        setDiscountDescription(storedDiscount.description || '');
+      } else {
+        const normalizedDescription = stripLeadingPercentageTokens(storedDiscount.description || '');
+        const numericValue = Number(storedDiscount.value) || getLastLeadingPercentageValue(storedDiscount.description || '');
+        const hasValidDiscount = numericValue > 0;
+
+        if (hasValidDiscount) {
+          setHasDiscount(true);
+          setDiscountValue(String(numericValue));
+          setDiscountDescription(normalizedDescription);
+
+          // Persist a cleaned, canonical discount payload so generation cannot reuse stale text.
+          data.pricing.discount = {
+            ...storedDiscount,
+            type: 'percentage',
+            value: numericValue,
+            description: buildCanonicalPercentageDiscountDescription(numericValue, normalizedDescription)
+          };
+        } else {
+          setHasDiscount(false);
+          setDiscountValue('0');
+          setDiscountDescription('');
+          delete data.pricing.discount;
+        }
       }
     }
   };
@@ -414,7 +451,7 @@ export default function PreviewPage() {
       const service = newServices[index];
       const tierPrice = getTierPriceForQuantity(service.pricingTiers, qty);
       if (tierPrice !== null) {
-        service.unitPrice = tierPrice.toFixed(2).replace('.', ',');
+        service.unitPrice = tierPrice.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
       }
       const newPricing = computePricing(newServices);
       updateProposalData({ services: newServices, pricing: newPricing });
@@ -661,21 +698,30 @@ export default function PreviewPage() {
     let subtotal = 0;
     servicesData.forEach((service: any) => {
       const qty = parseInt(service.quantity) || 0;
-      const price = parseFloat(service.unitPrice?.toString().replace(',', '.')) || 0;
+      const price = parseFloat(service.unitPrice?.toString().replace(/\./g, '').replace(',', '.')) || 0;
       subtotal += qty * price;
     });
 
+    const existingDiscount = proposalData?.pricing?.discount;
+    const hasFixedDiscount = existingDiscount?.type === 'fixed' &&
+      ((Number(existingDiscount.value) || 0) > 0 || parseLocalizedNumber(existingDiscount.amount) > 0);
+
     let discountAmount = 0;
     const numericDiscountValue = parseFloat((discountValue || '0').replace(',', '.')) || 0;
+    const fixedDiscountValue = hasFixedDiscount
+      ? (Number(existingDiscount.value) || parseLocalizedNumber(existingDiscount.amount))
+      : 0;
 
     if (applyDiscount && numericDiscountValue > 0) {
       discountAmount = subtotal * (numericDiscountValue / 100);
+    } else if (!applyDiscount && fixedDiscountValue > 0) {
+      discountAmount = fixedDiscountValue;
     }
 
     const totalNet = subtotal - discountAmount;
     const totalVat = totalNet * 0.19;
     const totalGross = totalNet + totalVat;
-    const fmt = (val: number) => val.toFixed(2).replace('.', ',');
+    const fmt = (val: number) => val.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
     const pricing: any = {
       ...(proposalData?.pricing || {}),
@@ -691,6 +737,11 @@ export default function PreviewPage() {
         value: numericDiscountValue,
         amount: fmt(discountAmount),
         description: fullDescription,
+      };
+    } else if (!applyDiscount && fixedDiscountValue > 0 && existingDiscount) {
+      pricing.discount = {
+        ...existingDiscount,
+        value: fixedDiscountValue,
       };
     } else {
       delete pricing.discount;
@@ -725,7 +776,7 @@ export default function PreviewPage() {
 
   // Helper: rebuild a tier label from its quantity and price
   const rebuildTierLabel = (tier: any, allTiers: any[], tierIndex: number): string => {
-    const fmt = (p: number) => p.toFixed(2).replace('.', ',');
+    const fmt = (p: number) => p.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     const isLast = tierIndex === allTiers.length - 1;
     const prefix = isLast && allTiers.length > 1 ? '≥' : '';
     if (tier.quantity === 1) {
@@ -748,7 +799,7 @@ export default function PreviewPage() {
     const qty = parseInt(service.quantity) || 0;
     const matchedPrice = getTierPriceForQuantity(tiers, qty);
     if (matchedPrice !== null) {
-      service.unitPrice = matchedPrice.toFixed(2).replace('.', ',');
+      service.unitPrice = matchedPrice.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     }
 
     newServices[serviceIndex] = service;
@@ -763,7 +814,7 @@ export default function PreviewPage() {
   };
 
   const formatPrice = (value: number) => {
-    return value.toFixed(2).replace('.', ',') + ' €';
+    return value.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €';
   };
 
   const calculatePercentageDiscount = () => {
@@ -772,10 +823,10 @@ export default function PreviewPage() {
     let subtotal = 0;
     proposalData.services.forEach((service: any) => {
       const qty = parseInt(service.quantity) || 0;
-      const price = parseFloat(service.unitPrice?.toString().replace(',', '.')) || 0;
+      const price = parseFloat(service.unitPrice?.toString().replace(/\./g, '').replace(',', '.')) || 0;
       subtotal += qty * price;
     });
-    return (subtotal * percentage / 100).toFixed(2).replace('.', ',');
+    return (subtotal * percentage / 100).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   };
 
   const handleGenerateProposal = async () => {
@@ -1154,8 +1205,10 @@ export default function PreviewPage() {
                             contentEditable
                             suppressContentEditableWarning
                             onBlur={(e) => {
-                              const newPrice = e.currentTarget.textContent?.replace(',', '.') || '0';
-                              updateService(index, 'unitPrice', newPrice);
+                              const raw = e.currentTarget.textContent?.trim() || '0';
+                              // Parse German-formatted input (dot = thousands, comma = decimal)
+                              const num = parseFloat(raw.replace(/\./g, '').replace(',', '.')) || 0;
+                              updateService(index, 'unitPrice', num.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
                             }}
                             onKeyDown={handleEnterKey}
                             className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
@@ -1184,7 +1237,7 @@ export default function PreviewPage() {
                       // Tier rows
                       service.pricingTiers.forEach((tier: any, tierIndex: number) => {
                         // Split label into text prefix and editable price
-                        const priceMatch = tier.label?.match(/^(.+?)\s*(\d+[.,]\d{2})\s*€$/);
+                        const priceMatch = tier.label?.match(/^(.+?)\s*([\d.]+,\d{2})\s*€$/);
                         rows.push(
                           <tr key={`tier-${index}-${tierIndex}-${tier.price}`} className="bg-gray-50">
                             <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
@@ -1198,7 +1251,7 @@ export default function PreviewPage() {
                                     contentEditable
                                     suppressContentEditableWarning
                                     onBlur={(e) => {
-                                      const raw = e.currentTarget.textContent?.replace(',', '.') || '0';
+                                      const raw = e.currentTarget.textContent?.replace(/\./g, '').replace(',', '.') || '0';
                                       const parsed = parseFloat(raw);
                                       if (!isNaN(parsed)) updateTierPrice(index, tierIndex, parsed);
                                     }}
@@ -1471,7 +1524,7 @@ export default function PreviewPage() {
                     if (netNum > 2000) {
                       const grossStr = proposalData.pricing?.totalGrossPrice || '0';
                       const grossNum = parseFloat(grossStr.replace(/\./g, '').replace(',', '.')) || 0;
-                      const halfAmount = (grossNum * 0.5).toFixed(2).replace('.', ',');
+                      const halfAmount = (grossNum * 0.5).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
                       return `nach Eingang der Anzahlung i.H.v. 50% des Bruttopreises (${halfAmount} EUR) und Erhalt aller Unterlagen und Informationen`;
                     }
                     return 'nach Auftragseingang und Erhalt aller Unterlagen und Informationen';
