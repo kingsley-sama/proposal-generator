@@ -1,0 +1,220 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - heading "📄 Angebotsvorschau" [level=1] [ref=e4]
+      - generic [ref=e5]:
+        - button "← Zurück zum Formular" [ref=e6]
+        - button "📄 DOCX erstellen" [ref=e7]
+    - generic [ref=e8]:
+      - generic [ref=e9]: 💡 Klicken Sie auf einen Text, um ihn zu bearbeiten. Änderungen werden automatisch gespeichert.
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - generic [ref=e13]: ExposeProfi.de
+          - generic [ref=e14]: ExposeProfi.de | EPCS GmbH | Bruder-Klaus-Straße 3a | 78467 Konstanz
+          - generic [ref=e15]: 31.03.2026
+          - generic [ref=e16]: Angebot Nr. …
+          - generic [ref=e17]: Vielen Dank für Ihre Anfrage und Ihr damit verbundenes Interesse an einer Zusammenarbeit.
+          - strong [ref=e19]: "Die Vorteile zusammengefasst, die Sie erwarten können:"
+          - generic [ref=e20]:
+            - generic [ref=e21]:
+              - strong [ref=e22]: "1. Fotorealismus:"
+              - text: Wir erstellen ausschließlich emotionale 3D-Visualisierungen der höchsten Qualitätsstufe.
+            - generic [ref=e23]:
+              - strong [ref=e24]: "2. Persönliche & individuelle Betreuung:"
+              - text: Sie erhalten bei jedem Projekt die Unterstützung von einem persönlichen Ansprechpartner, der die Visualisierungen individuell für Sie erstellt und immer per Telefon oder Email erreichbar ist.
+            - generic [ref=e25]:
+              - strong [ref=e26]: "3. Effiziente Prozesse & schnelle Lieferzeit:"
+              - text: Wie Sie sehen, melden wir uns innerhalb von 24h mit einem Angebot bei Ihnen. Ihr Projekt verläuft ab Start ebenso reibungslos und Sie erhalten die Visualisierungen schnellstmöglich.
+            - generic [ref=e27]:
+              - strong [ref=e28]: "4. Korrekturschleifen:"
+              - text: Falls Sie Änderungswünsche haben, bieten wir Ihnen ein eigenes Tool, mit dem Sie direkt in der Visualisierung Kommentare hinterlassen können. Das spart Zeit und Missverständnisse.
+            - generic [ref=e29]:
+              - strong [ref=e30]: "5. Preiswert:"
+              - text: Aufgrund effizienter Prozesse bieten wir günstigere Preise bei gleicher Qualität und besserer Betreuung.
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - paragraph [ref=e33]: ExposeProfi.de
+            - paragraph [ref=e34]: EPCS GmbH
+            - paragraph [ref=e35]: "GF: Christopher Helm"
+            - paragraph [ref=e36]: Bruder-Klaus-Str. 3a, 78467 Konstanz
+            - paragraph [ref=e37]: HRB 725172, Amtsgericht Freiburg
+            - paragraph [ref=e38]: "St.-Nr: 0908011277"
+            - paragraph [ref=e39]: "USt-ID: DE347265281"
+          - generic [ref=e40]:
+            - paragraph [ref=e41]: Bankverbindung
+            - paragraph [ref=e42]: Qonto (Banque de France)
+            - paragraph [ref=e43]: IBAN DE62100101239488471916
+          - generic [ref=e44]:
+            - paragraph [ref=e45]: "Email: christopher.helm@exposeprofi.de"
+            - paragraph [ref=e46]: "Web: www.exposeprofi.de"
+            - paragraph [ref=e47]: "Tel: +49-7531-1227491"
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - strong [ref=e51]: "Basierend auf den zugesandten Unterlagen unterbreiten wir Ihnen folgendes Angebot:"
+          - table [ref=e52]:
+            - rowgroup [ref=e53]:
+              - row "Anz. Bezeichnung Beschreibung Stückpreis netto" [ref=e54]:
+                - columnheader "Anz." [ref=e55]
+                - columnheader "Bezeichnung" [ref=e56]
+                - columnheader "Beschreibung" [ref=e57]
+                - columnheader "Stückpreis netto" [ref=e58]
+            - rowgroup [ref=e59]:
+              - 'row "3 3D-Innenvisualisierung ✎ Text bearbeiten Geliefert werden 3x gerenderte Innenansichten der Räume: Fotorealistische Qualität Eingerichtet individuell nach Ihren Wünschen (allerdings keine individuelle Modellierung konkreter Möbelstücke inkludiert) Falls Türen zwischen einzelnen Räumen zu sehen sind, werden diese als geschlossen dargestellt Inkl. 1 Revisionsrunde⁽¹⁾ Format: 2.500 x 1.500 px (300 DPI) Referenzen: KLICK 289,00 €" [ref=e60]':
+                - cell "3" [ref=e61]
+                - cell "3D-Innenvisualisierung" [ref=e62]
+                - 'cell "✎ Text bearbeiten Geliefert werden 3x gerenderte Innenansichten der Räume: Fotorealistische Qualität Eingerichtet individuell nach Ihren Wünschen (allerdings keine individuelle Modellierung konkreter Möbelstücke inkludiert) Falls Türen zwischen einzelnen Räumen zu sehen sind, werden diese als geschlossen dargestellt Inkl. 1 Revisionsrunde⁽¹⁾ Format: 2.500 x 1.500 px (300 DPI) Referenzen: KLICK" [ref=e63]':
+                  - generic "Klicken zum Bearbeiten der Beschreibung" [ref=e64] [cursor=pointer]:
+                    - generic: ✎ Text bearbeiten
+                    - list:
+                      - listitem: "Geliefert werden 3x gerenderte Innenansichten der Räume:"
+                      - listitem: Fotorealistische Qualität
+                      - listitem: Eingerichtet individuell nach Ihren Wünschen (allerdings keine individuelle Modellierung konkreter Möbelstücke inkludiert)
+                      - listitem: Falls Türen zwischen einzelnen Räumen zu sehen sind, werden diese als geschlossen dargestellt
+                      - listitem: Inkl. 1 Revisionsrunde⁽¹⁾
+                      - listitem: "Format: 2.500 x 1.500 px (300 DPI)"
+                      - listitem:
+                        - generic:
+                          - strong: "Referenzen:"
+                          - link "KLICK" [ref=e65]:
+                            - /url: https://www.exposeprofi.de/3d-visualisierungen/innenvisualisierungen
+                - cell "289,00 €" [ref=e66]
+              - row "Preisstaffelung:" [ref=e67]:
+                - cell [ref=e68]
+                - cell [ref=e69]
+                - cell "Preisstaffelung:" [ref=e70]
+                - cell [ref=e71]
+              - 'row "1 Ansicht Netto: 399,00 €" [ref=e72]':
+                - cell [ref=e73]
+                - cell [ref=e74]
+                - 'cell "1 Ansicht Netto: 399,00 €" [ref=e75]'
+                - cell [ref=e76]
+              - 'row "2 Ansichten: Netto pro Ansicht: 299,00 €" [ref=e77]':
+                - cell [ref=e78]
+                - cell [ref=e79]
+                - 'cell "2 Ansichten: Netto pro Ansicht: 299,00 €" [ref=e80]'
+                - cell [ref=e81]
+              - 'row "3 Ansichten: Netto pro Ansicht: 289,00 €" [ref=e82]':
+                - cell [ref=e83]
+                - cell [ref=e84]
+                - 'cell "3 Ansichten: Netto pro Ansicht: 289,00 €" [ref=e85]'
+                - cell [ref=e86]
+              - 'row "4 Ansichten: Netto pro Ansicht: 269,00 €" [ref=e87]':
+                - cell [ref=e88]
+                - cell [ref=e89]
+                - 'cell "4 Ansichten: Netto pro Ansicht: 269,00 €" [ref=e90]'
+                - cell [ref=e91]
+              - 'row "5 Ansichten: Netto pro Ansicht: 259,00 €" [ref=e92]':
+                - cell [ref=e93]
+                - cell [ref=e94]
+                - 'cell "5 Ansichten: Netto pro Ansicht: 259,00 €" [ref=e95]'
+                - cell [ref=e96]
+              - 'row "6 Ansichten: Netto pro Ansicht: 249,00 €" [ref=e97]':
+                - cell [ref=e98]
+                - cell [ref=e99]
+                - 'cell "6 Ansichten: Netto pro Ansicht: 249,00 €" [ref=e100]'
+                - cell [ref=e101]
+              - 'row "7 Ansichten: Netto pro Ansicht: 239,00 €" [ref=e102]':
+                - cell [ref=e103]
+                - cell [ref=e104]
+                - 'cell "7 Ansichten: Netto pro Ansicht: 239,00 €" [ref=e105]'
+                - cell [ref=e106]
+              - 'row "8 Ansichten: Netto pro Ansicht: 229,00 €" [ref=e107]':
+                - cell [ref=e108]
+                - cell [ref=e109]
+                - 'cell "8 Ansichten: Netto pro Ansicht: 229,00 €" [ref=e110]'
+                - cell [ref=e111]
+              - 'row "9 Ansichten: Netto pro Ansicht: 219,00 €" [ref=e112]':
+                - cell [ref=e113]
+                - cell [ref=e114]
+                - 'cell "9 Ansichten: Netto pro Ansicht: 219,00 €" [ref=e115]'
+                - cell [ref=e116]
+              - 'row "≥10 Ansichten: Netto pro Ansicht: 199,00 €" [ref=e117]':
+                - cell [ref=e118]
+                - cell [ref=e119]
+                - 'cell "≥10 Ansichten: Netto pro Ansicht: 199,00 €" [ref=e120]'
+                - cell [ref=e121]
+          - generic [ref=e122]: 💡 Klicken Sie auf Mengen, Namen, Beschreibungen oder Preise, um sie zu bearbeiten
+        - generic [ref=e123]:
+          - generic [ref=e124]:
+            - paragraph [ref=e125]: ExposeProfi.de
+            - paragraph [ref=e126]: EPCS GmbH
+            - paragraph [ref=e127]: "GF: Christopher Helm"
+            - paragraph [ref=e128]: Bruder-Klaus-Str. 3a, 78467 Konstanz
+            - paragraph [ref=e129]: HRB 725172, Amtsgericht Freiburg
+            - paragraph [ref=e130]: "St.-Nr: 0908011277"
+            - paragraph [ref=e131]: "USt-ID: DE347265281"
+          - generic [ref=e132]:
+            - paragraph [ref=e133]: Bankverbindung
+            - paragraph [ref=e134]: Qonto (Banque de France)
+            - paragraph [ref=e135]: IBAN DE62100101239488471916
+          - generic [ref=e136]:
+            - paragraph [ref=e137]: "Email: christopher.helm@exposeprofi.de"
+            - paragraph [ref=e138]: "Web: www.exposeprofi.de"
+            - paragraph [ref=e139]: "Tel: +49-7531-1227491"
+      - generic [ref=e140]:
+        - generic [ref=e141]:
+          - generic [ref=e142]: "Zusammenfassung:"
+          - table [ref=e143]:
+            - rowgroup [ref=e144]:
+              - row "Zwischensumme (Netto) 0867,00 €" [ref=e145]:
+                - cell "Zwischensumme (Netto)" [ref=e146]:
+                  - strong [ref=e147]: Zwischensumme (Netto)
+                - cell "0867,00 €" [ref=e148]:
+                  - strong [ref=e149]: 0867,00 €
+              - row "Summe (Netto) €" [ref=e150]:
+                - cell "Summe (Netto)" [ref=e151]:
+                  - strong [ref=e152]: Summe (Netto)
+                - cell "€" [ref=e153]:
+                  - strong [ref=e154]: €
+              - row "MwSt. (19%) €" [ref=e156]:
+                - cell "MwSt. (19%)" [ref=e157]:
+                  - strong [ref=e158]: MwSt. (19%)
+                - cell "€" [ref=e159]:
+                  - strong [ref=e160]: €
+              - row "Gesamtbruttopreis €" [ref=e162]:
+                - cell "Gesamtbruttopreis" [ref=e163]:
+                  - strong [ref=e164]: Gesamtbruttopreis
+                - cell "€" [ref=e165]:
+                  - strong [ref=e166]: €
+          - button "+ Rabatt hinzufügen" [ref=e168]
+          - paragraph [ref=e169]:
+            - strong [ref=e170]: "Dieses Angebot ist gültig bis: 07.04.26"
+          - generic [ref=e171]:
+            - paragraph [ref=e172]:
+              - strong [ref=e173]: "Lieferweg:"
+              - text: Digital via Email
+            - paragraph [ref=e174]:
+              - strong [ref=e175]: "Voraussichtl. Leistungsdatum:"
+              - text: 7-10 Werktage Arbeitstage nach Auftragseingang und Erhalt aller Unterlagen und Informationen
+          - paragraph [ref=e176]:
+            - text: Mit freundlichen Grüßen
+            - text: Christopher Helm
+          - generic [ref=e177]:
+            - paragraph [ref=e178]: "(1): Sollten Sie nach der gratis Revision eine weitere Revision benötigen, die nicht durch uns verschuldet wurde, führen wir diese standardmässig für 50 % des Nettopreises pro Visualisierung durch. Unsere effizienten Prozesse und die sehr hohe Qualität führen jedoch dazu, dass in der Regel eine einzige Revision ausreicht: In hunderten von Projekten benötigen unsere Kunden nur in 6 % aller Fälle eine zusätzliche Revision, und auch dann meist nur, wenn sich die Pläne nachträglich deutlich geändert haben."
+            - paragraph [ref=e179]: "Bitte beachten Sie: Bei Änderungen der Pläne (unabhängig davon, ob diese im Rahmen der gratis oder einer zusätzlichen Revision erfolgen) wird der Preis je nach Umfang der Veränderungen individuell festgelegt. Je nach Umfang dauert eine Revision mindestens 50 % der ursprünglichen Lieferzeit."
+            - paragraph [ref=e180]: "Haftungsausschluss: Wir sind stets bestrebt, Ihre Visualisierungen so detailgetreu wie möglich zu erstellen. Jedoch dienen die Visualisierungen nur der Veranschaulichung. Folglich wird keine Haftung für eventuelle Schäden auf Grund von Abweichungen übernommen."
+            - paragraph [ref=e181]: "Nutzungsrecht: Die Nutzung der durch uns erstellten Visualisierungen ist erst nach Zahlung gestattet."
+            - paragraph [ref=e182]: "Es gelten unsere allgemeinen Verkaufs- und Lieferbedingungen. Die gültige Version der allgemeinen Verkaufs- und Lieferbedingungen Stand 03/2023 finden Sie auf der Website: https://www.exposeprofi.de/agb. Außerdem auf Anforderung erhältlich."
+            - paragraph [ref=e183]: Nach der ersten vollständigen Lieferung aller bestellten Produkte wird das Projekt in Rechnung gestellt. Die im Angebot inbegriffene kostenlose Revision können Sie jederzeit in Anspruch nehmen.
+            - paragraph [ref=e184]: Damit wir Ihr Projekt zügig und planbar umsetzen können, reservieren wir feste Kapazitäten. Wenn Sie die vollständigen Unterlagen entgegen Ihrer ursprünglichen Planung nicht innerhalb von 30 Tagen nach Angebotsannahme einreichen können, bleibt Ihr Auftrag selbstverständlich erhalten. Wir wandeln ihn dann einfach in eine Gutscheinrechnung um. Der Gutschein ist 12 Monate gültig und kann flexibel für Visualisierungen des Objektes eingesetzt werden.
+          - generic [ref=e185]: 💡 Klicken Sie auf Preiswerte, um sie zu bearbeiten
+        - generic [ref=e186]:
+          - generic [ref=e187]:
+            - paragraph [ref=e188]: ExposeProfi.de
+            - paragraph [ref=e189]: EPCS GmbH
+            - paragraph [ref=e190]: "GF: Christopher Helm"
+            - paragraph [ref=e191]: Bruder-Klaus-Str. 3a, 78467 Konstanz
+            - paragraph [ref=e192]: HRB 725172, Amtsgericht Freiburg
+            - paragraph [ref=e193]: "St.-Nr: 0908011277"
+            - paragraph [ref=e194]: "USt-ID: DE347265281"
+          - generic [ref=e195]:
+            - paragraph [ref=e196]: Bankverbindung
+            - paragraph [ref=e197]: Qonto (Banque de France)
+            - paragraph [ref=e198]: IBAN DE62100101239488471916
+          - generic [ref=e199]:
+            - paragraph [ref=e200]: "Email: christopher.helm@exposeprofi.de"
+            - paragraph [ref=e201]: "Web: www.exposeprofi.de"
+            - paragraph [ref=e202]: "Tel: +49-7531-1227491"
+  - button "Open Next.js Dev Tools" [ref=e208] [cursor=pointer]:
+    - img [ref=e209]
+  - alert [ref=e212]

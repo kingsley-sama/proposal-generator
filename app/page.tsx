@@ -797,6 +797,10 @@ export default function ProposalFormPage() {
   };
 
   const handleGenerateJSON = () => {
+    if (discount.value > 0 && !discount.type) {
+      showNotification('Bitte eine Rabattart auswählen (Prozent oder Festbetrag).', 'error');
+      return;
+    }
     const data = collectFormData(true);
     const jsonString = JSON.stringify(data, null, 2);
     setJsonData(jsonString);
@@ -820,6 +824,11 @@ export default function ProposalFormPage() {
 
     if (data.services.length === 0) {
       showNotification('Bitte mindestens eine Leistung auswählen.', 'error');
+      return;
+    }
+
+    if (discount.value > 0 && !discount.type) {
+      showNotification('Bitte eine Rabattart auswählen (Prozent oder Festbetrag).', 'error');
       return;
     }
 

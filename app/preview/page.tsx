@@ -74,6 +74,15 @@ export default function PreviewPage() {
   const [editingServiceIndex, setEditingServiceIndex] = useState<number | null>(null);
   const [bulkEditText, setBulkEditText] = useState('');
 
+  // Refs for summary spans — used by recomputePricingLive to update totals
+  // directly in the DOM while the user is typing, so we don't trigger a full
+  // re-render of the services table on every keystroke.
+  const subtotalNetRef = useRef<HTMLSpanElement>(null);
+  const totalNetPriceRef = useRef<HTMLSpanElement>(null);
+  const totalVatRef = useRef<HTMLSpanElement>(null);
+  const totalGrossPriceRef = useRef<HTMLSpanElement>(null);
+  const discountAmountRef = useRef<HTMLSpanElement>(null);
+
   const toDashString = (items: any[], level = 0): string => {
       if (!items) return '';
       let result = '';
@@ -460,6 +469,38 @@ export default function PreviewPage() {
       updateProposalData({ services: newServices, pricing: newPricing });
     } else {
       updateProposalData({ services: newServices });
+    }
+  };
+
+  // Recompute pricing live (without committing to services or triggering a
+  // React re-render) so the summary reflects in-progress edits to
+  // quantity/unitPrice before blur. Writes straight to the summary DOM via
+  // refs to keep typing in the edited span free of reconciliation lag.
+  const recomputePricingLive = (index: number, field: 'quantity' | 'unitPrice', rawValue: string) => {
+    if (!proposalData) return;
+    const tempServices = proposalData.services.map((s: any) => ({ ...s }));
+    const tempService = tempServices[index];
+    if (!tempService) return;
+
+    if (field === 'quantity') {
+      const qty = parseInt(rawValue.replace(/x$/i, '')) || 0;
+      tempService.quantity = qty;
+      const tierPrice = getTierPriceForQuantity(tempService.pricingTiers, qty);
+      if (tierPrice !== null) {
+        tempService.unitPrice = tierPrice.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+      }
+    } else {
+      const num = parseFloat(rawValue.replace(/\./g, '').replace(',', '.')) || 0;
+      tempService.unitPrice = num.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
+    const newPricing = computePricing(tempServices);
+    if (subtotalNetRef.current) subtotalNetRef.current.textContent = newPricing.subtotalNet;
+    if (totalNetPriceRef.current) totalNetPriceRef.current.textContent = newPricing.totalNetPrice;
+    if (totalVatRef.current) totalVatRef.current.textContent = newPricing.totalVat;
+    if (totalGrossPriceRef.current) totalGrossPriceRef.current.textContent = newPricing.totalGrossPrice;
+    if (discountAmountRef.current && newPricing.discount?.amount) {
+      discountAmountRef.current.textContent = newPricing.discount.amount;
     }
   };
 
@@ -1082,6 +1123,9 @@ export default function PreviewPage() {
                             key={`qty-${index}-${service.quantity}`}
                             contentEditable
                             suppressContentEditableWarning
+                            onInput={(e) => {
+                              recomputePricingLive(index, 'quantity', e.currentTarget.textContent || '0');
+                            }}
                             onBlur={(e) => {
                               const newQty = parseInt(e.currentTarget.textContent?.replace(/x$/i, '') || '0');
                               updateService(index, 'quantity', newQty);
@@ -1204,6 +1248,9 @@ export default function PreviewPage() {
                             key={`price-${index}-${service.unitPrice}`}
                             contentEditable
                             suppressContentEditableWarning
+                            onInput={(e) => {
+                              recomputePricingLive(index, 'unitPrice', e.currentTarget.textContent?.trim() || '0');
+                            }}
                             onBlur={(e) => {
                               const raw = e.currentTarget.textContent?.trim() || '0';
                               // Parse German-formatted input (dot = thousands, comma = decimal)
@@ -1333,6 +1380,7 @@ export default function PreviewPage() {
                   <td className="border border-gray-800 p-1.5 w-[30%] text-center text-gray-900">
                     <strong>
                       <span
+                        ref={subtotalNetRef}
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.subtotalNet', e)}
@@ -1379,7 +1427,7 @@ export default function PreviewPage() {
                         </span>
                         {'% '}
                         <span className="text-gray-600 text-[9pt] ml-1">
-                          ({calculatePercentageDiscount()} €)
+                          (<span ref={discountAmountRef}>{calculatePercentageDiscount()}</span> €)
                         </span>
                         <button
                           onClick={removeDiscount}
@@ -1399,6 +1447,7 @@ export default function PreviewPage() {
                   <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                     <strong>
                       <span
+                        ref={totalNetPriceRef}
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.totalNetPrice', e)}
@@ -1418,6 +1467,7 @@ export default function PreviewPage() {
                   <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                     <strong>
                       <span
+                        ref={totalVatRef}
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.totalVat', e)}
@@ -1437,6 +1487,7 @@ export default function PreviewPage() {
                   <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                     <strong>
                       <span
+                        ref={totalGrossPriceRef}
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.totalGrossPrice', e)}

@@ -1,0 +1,15 @@
+[     237ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[     953ms] [LOG] [Fast Refresh] done in 926ms @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[    1872ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[    2037ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[    2276ms] [LOG] 📂 Loading saved proposal data... @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[    2279ms] [LOG] ✅ Proposal data restored from localStorage @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[    7620ms] [LOG] 💾 Proposal data auto-saved @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[   12620ms] [LOG] 💾 Proposal data auto-saved @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[   17620ms] [LOG] 💾 Proposal data auto-saved @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[   22620ms] [LOG] 💾 Proposal data auto-saved @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[   27621ms] [LOG] 💾 Proposal data auto-saved @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[   32620ms] [LOG] 💾 Proposal data auto-saved @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[   37620ms] [LOG] 💾 Proposal data auto-saved @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[   42620ms] [LOG] 💾 Proposal data auto-saved @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
+[   47620ms] [LOG] 💾 Proposal data auto-saved @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:2297
