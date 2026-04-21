@@ -865,12 +865,14 @@ export default function ProposalFormPage() {
         offerValidUntil: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       });
       setActiveServices(new Set());
+      setCustomServices([]);
       setServiceQuantities({});
       setServiceCustomPrices({});
       setServiceBuildingTypes({});
       setServiceApartmentSizes({});
       setServiceProjectTypes({});
       setServiceAreaSizes({});
+      setServiceDuplicates({});
       setImages([]);
       setDiscount({ type: '', value: 0, description: '' });
       setShowJSON(false);

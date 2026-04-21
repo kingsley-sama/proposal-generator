@@ -45,6 +45,7 @@ export function ServiceItem({
   onDuplicate,
   onRemove
 }: ServiceItemProps) {
+  const baseServiceId = serviceId.includes('__') ? serviceId.split('__')[0] : serviceId;
   const [inputValue, setInputValue] = useState<string>(String(quantity));
   const isFocusedRef = useRef(false);
 
@@ -119,7 +120,7 @@ export function ServiceItem({
           {/* Building Type selector moved to global project settings */}
           
           {/* Wohnungsgröße (für 360-interior) */}
-          {serviceId === '360-interior' && (
+          {baseServiceId === '360-interior' && (
             <div>
               <label className="block text-sm font-semibold text-slate-800 mb-2">
                 Wohnungsgröße *
@@ -148,7 +149,7 @@ export function ServiceItem({
           )}
 
           {/* Projekttyp (für interior - Wohn/Gewerbe) */}
-          {serviceId === 'interior' && (
+          {baseServiceId === 'interior' && (
             <div>
               <label className="block text-sm font-semibold text-slate-800 mb-2">
                 Projekttyp *
@@ -168,7 +169,7 @@ export function ServiceItem({
           )}
 
           {/* Projekttyp (für 3d-floorplan und 2d-floorplan) */}
-          {(serviceId === '3d-floorplan' || serviceId === '2d-floorplan') && (
+          {(baseServiceId === '3d-floorplan' || baseServiceId === '2d-floorplan') && (
             <>
               <div>
                 <label className="block text-sm font-semibold text-slate-800 mb-2">
@@ -182,7 +183,7 @@ export function ServiceItem({
                 >
                   <option value="">Projekttyp wählen...</option>
                   <option value="residential">
-                    Wohnimmobilie ({serviceId === '3d-floorplan' ? '69' : '49'}€ pro Grundriss)
+                    Wohnimmobilie ({baseServiceId === '3d-floorplan' ? '69' : '49'}€ pro Grundriss)
                   </option>
                   <option value="commercial">Gewerbe (Preis nach Fläche)</option>
                 </select>
@@ -203,7 +204,7 @@ export function ServiceItem({
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-slate-800"
                   >
                     <option value="">Fläche wählen...</option>
-                    {serviceId === '3d-floorplan' ? (
+                    {baseServiceId === '3d-floorplan' ? (
                       <>
                         <option value="100">100 m² - 99€</option>
                         <option value="250">250 m² - 199€</option>
@@ -232,7 +233,7 @@ export function ServiceItem({
           {/* Quantity */}
           <div>
             <label className="block text-sm font-semibold text-slate-800 mb-2">
-              Anzahl {serviceId.includes('floor') ? 'Grundrisse' : 'Ansichten'} *
+              Anzahl {baseServiceId.includes('floor') ? 'Grundrisse' : 'Ansichten'} *
             </label>
             <input
               type="text"
@@ -258,24 +259,24 @@ export function ServiceItem({
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-slate-800"
             />
             <span className="text-xs text-gray-700 mt-1 block">
-              {serviceId === 'exterior-bird' && 'Preise wie Bodenperspektive (abhängig vom Gebäudetyp)'}
-              {serviceId === '3d-complete-floor' && 'Preis: 199,00 € pro Geschoss'}
-              {serviceId === 'home-staging' && 'Preis: 99,00 € pro Foto'}
-              {serviceId === 'renovation' && 'Preis: 139,00 € pro Foto'}
-              {serviceId === 'slideshow' && 'Preis: 499,00 € pro Video'}
-              {serviceId === 'site-plan' && 'Preis: 99,00 € pro Lageplan'}
-              {serviceId === 'social-media' && 'Preis: 299,00 € pro Paket'}
-              {serviceId === 'interior' && (projectType === 'commercial'
+              {baseServiceId === 'exterior-bird' && 'Preise wie Bodenperspektive (abhängig vom Gebäudetyp)'}
+              {baseServiceId === '3d-complete-floor' && 'Preis: 199,00 € pro Geschoss'}
+              {baseServiceId === 'home-staging' && 'Preis: 99,00 € pro Foto'}
+              {baseServiceId === 'renovation' && 'Preis: 139,00 € pro Foto'}
+              {baseServiceId === 'slideshow' && 'Preis: 499,00 € pro Video'}
+              {baseServiceId === 'site-plan' && 'Preis: 99,00 € pro Lageplan'}
+              {baseServiceId === 'social-media' && 'Preis: 299,00 € pro Paket'}
+              {baseServiceId === 'interior' && (projectType === 'commercial'
                 ? 'Gewerblich: 1=499€, 2=399€, 3=389€, 4=369€, 5=359€, 6=349€, 7=339€, 8=329€, 9=319€, 10+=299€'
                 : 'Wohnimmobilie: 1=399€, 2=299€, 3=289€, 4=269€, 5=259€, 6=249€, 7=239€, 8=229€, 9=219€, 10+=199€')}
-              {serviceId === 'terrace' && 'Preis nach Anfrage'}
-              {serviceId === 'video-snippet' && 'Preis: 299,00 € pro Video Snippet'}
-              {serviceId === 'expose-layout' && 'Preis: 1.199,00 € pro Layout'}
-              {serviceId === 'expose-creation' && 'Preis: 499,00 € pro Exposé'}
-              {serviceId === 'project-branding' && 'Preis: 1.999,00 € pro Projekt'}
-              {serviceId === 'project-website' && 'Preis nach Anfrage'}
-              {serviceId === 'flat-finder' && 'Preis nach Anfrage'}
-              {serviceId === 'online-marketing' && 'Preis nach Anfrage'}
+              {baseServiceId === 'terrace' && 'Preis nach Anfrage'}
+              {baseServiceId === 'video-snippet' && 'Preis: 299,00 € pro Video Snippet'}
+              {baseServiceId === 'expose-layout' && 'Preis: 1.199,00 € pro Layout'}
+              {baseServiceId === 'expose-creation' && 'Preis: 499,00 € pro Exposé'}
+              {baseServiceId === 'project-branding' && 'Preis: 1.999,00 € pro Projekt'}
+              {baseServiceId === 'project-website' && 'Preis nach Anfrage'}
+              {baseServiceId === 'flat-finder' && 'Preis nach Anfrage'}
+              {baseServiceId === 'online-marketing' && 'Preis nach Anfrage'}
             </span>
           </div>
 

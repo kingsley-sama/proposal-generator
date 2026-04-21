@@ -282,11 +282,11 @@ export default function PreviewPage() {
               'MFH-11-15': [799, 599, 499, 399, 349]
             };
             const buildingTypeLabels: Record<string, string> = {
-              'EFH': 'EFH (Einfamilienhaus)',
-              'DHH': 'DHH (Doppelhaushälfte)',
-              'MFH-3-5': 'MFH (3-5 WE)',
-              'MFH-6-10': 'MFH (6-10 WE)',
-              'MFH-11-15': 'MFH (11-15 WE)'
+              'EFH': 'Einfamilienhaus',
+              'DHH': 'Doppelhaus',
+              'MFH-3-5': 'Projekt mit 3 bis 5 Wohneinheiten',
+              'MFH-6-10': 'Projekt mit 6 bis 10 Wohneinheiten',
+              'MFH-11-15': 'Projekt mit 11 bis 15 Wohneinheiten'
             };
             // Auto-update sub_name with the building type label; use customProjectType for 'Custom'
             const resolvedLabel = buildingType === 'Custom'
@@ -300,7 +300,7 @@ export default function PreviewPage() {
                 { quantity: 2, price: prices[1], label: `2 Ansichten: Netto pro Ansicht: ${fmt(prices[1])} €` },
                 { quantity: 3, price: prices[2], label: `3 Ansichten: Netto pro Ansicht: ${fmt(prices[2])} €` },
                 { quantity: 4, price: prices[3], label: `4 Ansichten: Netto pro Ansicht: ${fmt(prices[3])} €` },
-                { quantity: 5, price: prices[4], label: `≥5 Ansichten: Netto pro Ansicht: ${fmt(prices[4])} €` },
+                { quantity: 5, price: prices[4], label: `5 Ansichten: Netto pro Ansicht: ${fmt(prices[4])} €` },
               ];
             } else {
               // Custom building type: generate editable placeholder tiers
@@ -309,7 +309,7 @@ export default function PreviewPage() {
                 { quantity: 2, price: 0, label: `2 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
                 { quantity: 3, price: 0, label: `3 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
                 { quantity: 4, price: 0, label: `4 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
-                { quantity: 5, price: 0, label: `≥5 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
+                { quantity: 5, price: 0, label: `5 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
               ];
             }
           } else {
@@ -330,11 +330,11 @@ export default function PreviewPage() {
               'MFH-11-15': [799, 599, 499, 399, 349]
             };
             const buildingTypeLabels: Record<string, string> = {
-              'EFH': 'EFH (Einfamilienhaus)',
-              'DHH': 'DHH (Doppelhaushälfte)',
-              'MFH-3-5': 'MFH (3-5 WE)',
-              'MFH-6-10': 'MFH (6-10 WE)',
-              'MFH-11-15': 'MFH (11-15 WE)'
+              'EFH': 'Einfamilienhaus',
+              'DHH': 'Doppelhaus',
+              'MFH-3-5': 'Projekt mit 3 bis 5 Wohneinheiten',
+              'MFH-6-10': 'Projekt mit 6 bis 10 Wohneinheiten',
+              'MFH-11-15': 'Projekt mit 11 bis 15 Wohneinheiten'
             };
             const resolvedBirdLabel = buildingType === 'Custom'
               ? (data.projectInfo?.customProjectType || 'Custom')
@@ -347,7 +347,7 @@ export default function PreviewPage() {
                 { quantity: 2, price: birdPrices[1], label: `2 Ansichten: Netto pro Ansicht: ${fmt(birdPrices[1])} €` },
                 { quantity: 3, price: birdPrices[2], label: `3 Ansichten: Netto pro Ansicht: ${fmt(birdPrices[2])} €` },
                 { quantity: 4, price: birdPrices[3], label: `4 Ansichten: Netto pro Ansicht: ${fmt(birdPrices[3])} €` },
-                { quantity: 5, price: birdPrices[4], label: `≥5 Ansichten: Netto pro Ansicht: ${fmt(birdPrices[4])} €` },
+                { quantity: 5, price: birdPrices[4], label: `5 Ansichten: Netto pro Ansicht: ${fmt(birdPrices[4])} €` },
               ];
             } else {
               // Custom building type: generate editable placeholder tiers
@@ -356,7 +356,7 @@ export default function PreviewPage() {
                 { quantity: 2, price: 0, label: `2 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
                 { quantity: 3, price: 0, label: `3 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
                 { quantity: 4, price: 0, label: `4 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
-                { quantity: 5, price: 0, label: `≥5 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
+                { quantity: 5, price: 0, label: `5 Ansichten: Netto pro Ansicht: ${fmt(0)} €` },
               ];
             }
           }

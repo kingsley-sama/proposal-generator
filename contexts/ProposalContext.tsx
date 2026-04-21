@@ -343,7 +343,8 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
     
     return formatForTemplate(service.customDescription, {
       quantity: service.quantity,
-      projectName: state.projectInfo.projectName
+      projectName: state.projectInfo.projectName,
+      serviceId: service.id
     });
   }, [state.services, state.projectInfo.projectName, getServiceById]);
 

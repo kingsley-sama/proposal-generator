@@ -8,6 +8,70 @@ export interface BulletPoint {
   children: BulletPoint[];
 }
 
+function applyServicePluralization(
+  text: string,
+  quantity: number,
+  serviceId?: string
+): string {
+  if (quantity <= 1 || !serviceId) {
+    return text;
+  }
+
+  switch (serviceId) {
+    case '360-interior':
+      return text
+        .replace('Geliefert wird', 'Geliefert werden')
+        .replace('360° Tour', '360° Touren')
+        .replace('folgender Wohneinheit:', 'folgender Wohneinheiten:');
+
+    case 'video-snippet':
+      return text
+        .replace('Geliefert wird', 'Geliefert werden')
+        .replace('Video-Snippet', 'Video-Snippets')
+        .replace('bei dem', 'bei denen')
+        .replace('ein Video', 'Videos');
+
+    case '360-exterior':
+      return text
+        .replace('Geliefert wird', 'Geliefert werden')
+        .replace('360° Video-Tour', '360° Video-Touren');
+
+    case 'slideshow':
+      return text
+        .replace('Geliefert wird', 'Geliefert werden')
+        .replace('Slideshow-Video', 'Slideshow-Videos');
+
+    case 'site-plan':
+      return text
+        .replace('Geliefert wird', 'Geliefert werden')
+        .replace('3D-Lageplan', '3D-Lagepläne');
+
+    case 'social-media':
+      return text
+        .replace('Geliefert wird', 'Geliefert werden')
+        .replace('Social Media Paket', 'Social Media Pakete');
+
+    case 'expose-layout':
+      return text
+        .replace('Geliefert wird', 'Geliefert werden')
+        .replace('Exposé Layout', 'Exposé Layouts');
+
+    case 'expose-creation':
+      return text
+        .replace('Geliefert wird', 'Geliefert werden')
+        .replace('komplettes Exposé', 'komplette Exposés');
+
+    case 'terrace':
+      return text
+        .replace('Geliefert wird', 'Geliefert werden')
+        .replace('gerenderte Ansicht', 'gerenderte Ansichten')
+        .replace('folgender Einheit:', 'folgender Einheiten:');
+
+    default:
+      return text;
+  }
+}
+
 /**
  * Parse service description - now expects proper nested structure from service_description.js
  */
@@ -150,6 +214,7 @@ export function formatForTemplate(
   serviceData?: {
     quantity?: number;
     projectName?: string;
+    serviceId?: string;
   }
 ): BulletPoint[] {
   return bulletPoints.map(bullet => {
@@ -162,6 +227,9 @@ export function formatForTemplate(
       }
       if (serviceData.projectName) {
         text = replaceProjectPlaceholders(text, serviceData.projectName);
+      }
+      if (serviceData.quantity && serviceData.serviceId) {
+        text = applyServicePluralization(text, serviceData.quantity, serviceData.serviceId);
       }
     }
 
