@@ -1,0 +1,2 @@
+- the search bar on the homepage when the user tries to search shoul take to the /explore/search term page   
+- 
