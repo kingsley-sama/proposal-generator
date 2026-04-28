@@ -116,6 +116,11 @@ export default function ProposalFormPage() {
 
   const [activeServices, setActiveServices] = useState<Set<string>>(new Set());
   const [customServices, setCustomServices] = useState<Array<{id: string, name: string, description: string, unitPrice: number}>>([]);
+  const [customDraft, setCustomDraft] = useState<{ name: string; price: string; description: string }>({
+    name: '',
+    price: '',
+    description: ''
+  });
   const [serviceQuantities, setServiceQuantities] = useState<Record<string, number>>({});
   const [serviceCustomPrices, setServiceCustomPrices] = useState<Record<string, number>>({});
   const [serviceBuildingTypes, setServiceBuildingTypes] = useState<Record<string, string>>({});
@@ -1164,109 +1169,161 @@ export default function ProposalFormPage() {
             {/* Custom Services Section */}
             <div className="mt-6 border-t pt-6">
               <h3 className="text-lg font-semibold text-slate-800 mb-4">Eigenes Produkt hinzufügen</h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end bg-gray-50 p-4 rounded-lg">
-                <div className="md:col-span-1">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Name</label>
-                  <input 
-                    type="text" 
-                    id="customName"
-                    placeholder="Produktname"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-                <div className="md:col-span-1">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Preis (€)</label>
-                  <input 
-                    type="number" 
-                    id="customPrice"
-                    placeholder="0.00"
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  />
-                </div>
-                <div className="md:col-span-2 flex gap-2">
-                  <div className="flex-1">
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Beschreibung</label>
-                    <input 
-                      type="text" 
-                      id="customDesc"
-                      placeholder="Kurze Beschreibung"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                    />
+              {(() => {
+                const parsedPrice = parseFloat(customDraft.price);
+                const priceValid = customDraft.price !== '' && !isNaN(parsedPrice) && parsedPrice >= 0;
+                const canAdd = customDraft.name.trim() !== '' && priceValid;
+
+                const submitDraft = () => {
+                  if (!canAdd) {
+                    showNotification('Name und gültiger Preis sind erforderlich', 'error');
+                    return;
+                  }
+                  const newService = {
+                    id: `custom-${Date.now()}`,
+                    name: customDraft.name.trim(),
+                    description: customDraft.description.trim(),
+                    unitPrice: parsedPrice,
+                    quantity: 1
+                  };
+                  setCustomServices(prev => [...prev, newService]);
+                  setServiceQuantities(prev => ({ ...prev, [newService.id]: 1 }));
+                  setActiveServices(prev => new Set(prev).add(newService.id));
+                  setCustomDraft({ name: '', price: '', description: '' });
+                  showNotification('Eigenes Produkt hinzugefügt', 'success');
+                };
+
+                const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitDraft();
+                  }
+                };
+
+                const inputClass = 'w-full px-4 py-3 border border-gray-300 rounded-lg text-base text-slate-800 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-800 focus:border-slate-800';
+
+                return (
+                  <div className="bg-gray-50 p-5 rounded-lg border border-gray-200">
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                      <div className="md:col-span-4">
+                        <label htmlFor="customName" className="block text-sm font-semibold text-slate-800 mb-2">
+                          Name *
+                        </label>
+                        <input
+                          id="customName"
+                          type="text"
+                          value={customDraft.name}
+                          onChange={(e) => setCustomDraft(prev => ({ ...prev, name: e.target.value }))}
+                          onKeyDown={handleEnter}
+                          placeholder="Produktname"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="md:col-span-3">
+                        <label htmlFor="customPrice" className="block text-sm font-semibold text-slate-800 mb-2">
+                          Preis (€) *
+                        </label>
+                        <input
+                          id="customPrice"
+                          type="number"
+                          value={customDraft.price}
+                          onChange={(e) => setCustomDraft(prev => ({ ...prev, price: e.target.value }))}
+                          onKeyDown={handleEnter}
+                          placeholder="0,00"
+                          step="0.01"
+                          min="0"
+                          inputMode="decimal"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="md:col-span-5">
+                        <label htmlFor="customDesc" className="block text-sm font-semibold text-slate-800 mb-2">
+                          Beschreibung
+                        </label>
+                        <input
+                          id="customDesc"
+                          type="text"
+                          value={customDraft.description}
+                          onChange={(e) => setCustomDraft(prev => ({ ...prev, description: e.target.value }))}
+                          onKeyDown={handleEnter}
+                          placeholder="Kurze Beschreibung (optional)"
+                          className={inputClass}
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4 flex justify-end">
+                      <button
+                        type="button"
+                        onClick={submitDraft}
+                        disabled={!canAdd}
+                        className="inline-flex items-center gap-2 bg-slate-800 text-white px-5 py-2.5 rounded-lg font-semibold hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Hinzufügen
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                        const nameEl = document.getElementById('customName') as HTMLInputElement;
-                        const priceEl = document.getElementById('customPrice') as HTMLInputElement;
-                        const descEl = document.getElementById('customDesc') as HTMLInputElement;
-                        
-                        if (nameEl.value && priceEl.value) {
-                            const newService = {
-                                id: `custom-${Date.now()}`,
-                                name: nameEl.value,
-                                description: descEl.value,
-                                unitPrice: parseFloat(priceEl.value),
-                                quantity: 1
-                            };
-                            setCustomServices([...customServices, newService]);
-                            setServiceQuantities(prev => ({ ...prev, [newService.id]: 1 }));
-                            setActiveServices(prev => new Set(prev).add(newService.id));
-                            
-                            // Reset inputs
-                            nameEl.value = '';
-                            priceEl.value = '';
-                            descEl.value = '';
-                            showNotification('Eigenes Produkt hinzugefügt', 'success');
-                        } else {
-                            showNotification('Name und Preis sind erforderlich', 'error');
-                        }
-                    }}
-                    className="bg-slate-800 text-white px-4 py-2 rounded-md hover:bg-slate-700 transition-colors h-[42px]"
-                  >
-                    Hinzufügen
-                  </button>
-                </div>
-              </div>
+                );
+              })()}
 
               {/* List of Custom Services */}
               {customServices.length > 0 && (
-                <div className="mt-4 space-y-2">
-                    {customServices.map(service => (
-                        <div key={service.id} className="flex items-center justify-between bg-white border p-3 rounded-lg">
-                            <div>
-                                <div className="font-semibold">{service.name}</div>
-                                <div className="text-sm text-gray-500">{service.description}</div>
-                                <div className="text-sm font-bold">{service.unitPrice.toFixed(2)} €</div>
-                            </div>
-                            <div className="flex items-center gap-3">
-                                <div className="flex items-center border rounded-md">
-                                    <button 
-                                        className="px-2 py-1 hover:bg-gray-100"
-                                        onClick={() => setServiceQuantities(prev => ({ ...prev, [service.id]: Math.max(0, (prev[service.id] || 0) - 1) }))}
-                                    >-</button>
-                                    <span className="px-2 w-8 text-center">{serviceQuantities[service.id] || 0}</span>
-                                    <button 
-                                        className="px-2 py-1 hover:bg-gray-100"
-                                        onClick={() => setServiceQuantities(prev => ({ ...prev, [service.id]: (prev[service.id] || 0) + 1 }))}
-                                    >+</button>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setCustomServices(customServices.filter(s => s.id !== service.id));
-                                        setActiveServices(prev => {
-                                            const next = new Set(prev);
-                                            next.delete(service.id);
-                                            return next;
-                                        });
-                                    }}
-                                    className="text-red-500 hover:text-red-700"
-                                >
-                                    Entfernen
-                                </button>
-                            </div>
+                <div className="mt-4 space-y-3">
+                  {customServices.map(service => {
+                    const qty = serviceQuantities[service.id] || 0;
+                    return (
+                      <div key={service.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white border border-gray-300 rounded-lg p-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-slate-800 break-words">{service.name}</div>
+                          {service.description && (
+                            <div className="text-sm text-gray-600 mt-0.5 break-words">{service.description}</div>
+                          )}
+                          <div className="text-sm font-semibold text-slate-700 mt-1">
+                            {service.unitPrice.toFixed(2).replace('.', ',')} € pro Einheit
+                          </div>
                         </div>
-                    ))}
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                          <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
+                            <button
+                              type="button"
+                              aria-label="Anzahl reduzieren"
+                              className="px-3 py-1.5 text-slate-700 hover:bg-gray-100 disabled:opacity-40"
+                              disabled={qty <= 0}
+                              onClick={() => setServiceQuantities(prev => ({ ...prev, [service.id]: Math.max(0, (prev[service.id] || 0) - 1) }))}
+                            >−</button>
+                            <span className="px-3 min-w-[2rem] text-center text-slate-800 font-semibold border-x border-gray-300">{qty}</span>
+                            <button
+                              type="button"
+                              aria-label="Anzahl erhöhen"
+                              className="px-3 py-1.5 text-slate-700 hover:bg-gray-100"
+                              onClick={() => setServiceQuantities(prev => ({ ...prev, [service.id]: (prev[service.id] || 0) + 1 }))}
+                            >+</button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomServices(customServices.filter(s => s.id !== service.id));
+                              setActiveServices(prev => {
+                                const next = new Set(prev);
+                                next.delete(service.id);
+                                return next;
+                              });
+                              setServiceQuantities(prev => {
+                                const next = { ...prev };
+                                delete next[service.id];
+                                return next;
+                              });
+                            }}
+                            className="text-sm font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-1.5 rounded-md transition-colors"
+                          >
+                            Entfernen
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
