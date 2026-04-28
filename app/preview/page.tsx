@@ -129,6 +129,20 @@ export default function PreviewPage() {
       text = text.replace(/(\d+x?)\s+Digital Home Staging Fotos/g, '$1 Digital Home Staging Foto');
       text = text.replace(/(\d+x?)\s+Digitale Renovierungsfotos/g, '$1 Digitales Renovierungsfoto');
       text = text.replace(/Bodenperspektiven/g, 'Bodenperspektive');
+      // Newly-covered services (revert plural → singular)
+      text = text.replace(/(\d+x?)\s+3D-Lagepläne/g, '$1 3D-Lageplan');
+      text = text.replace(/(\d+x?)\s+Slideshow-Videos/g, '$1 Slideshow-Video');
+      text = text.replace(/(\d+x?)\s+Social Media Pakete/g, '$1 Social Media Paket');
+      text = text.replace(/(\d+x?)\s+Video-Snippets/g, '$1 Video-Snippet');
+      text = text.replace(/bei denen wir/g, 'bei dem wir');
+      text = text.replace(/Videos mit Bewegtbildern/g, 'ein Video mit Bewegtbildern');
+      text = text.replace(/(\d+x?)\s+Exposé Layouts/g, '$1 Exposé Layout');
+      text = text.replace(/(\d+x?)\s+komplette Exposés/g, '$1 komplettes Exposé');
+      // 360° Video-Tour first (more specific) so it isn't shadowed by "360° Tour"
+      text = text.replace(/(\d+x?)\s+360° Video-Touren/g, '$1 360° Video-Tour');
+      text = text.replace(/(\d+x?)\s+360° Touren\b/g, '$1 360° Tour');
+      text = text.replace(/folgender Wohneinheiten:/g, 'folgender Wohneinheit:');
+      text = text.replace(/folgender Einheiten:/g, 'folgender Einheit:');
     } else {
       // Plural: "Geliefert wird Xx ..." → "Geliefert werden Xx ..."
       text = text.replace(/Geliefert wird (\d+x?)/i, 'Geliefert werden $1');
@@ -142,6 +156,20 @@ export default function PreviewPage() {
       text = text.replace(/(\d+x?)\s+Digital Home Staging Foto(?!s)/g, '$1 Digital Home Staging Fotos');
       text = text.replace(/(\d+x?)\s+Digitales Renovierungsfoto(?!s)/g, '$1 Digitale Renovierungsfotos');
       text = text.replace(/Bodenperspektive(?!n)/g, 'Bodenperspektiven');
+      // Newly-covered services (singular → plural)
+      text = text.replace(/(\d+x?)\s+3D-Lageplan(?!\w)/g, '$1 3D-Lagepläne');
+      text = text.replace(/(\d+x?)\s+Slideshow-Video(?!s)/g, '$1 Slideshow-Videos');
+      text = text.replace(/(\d+x?)\s+Social Media Paket(?!e)/g, '$1 Social Media Pakete');
+      text = text.replace(/(\d+x?)\s+Video-Snippet(?!s)/g, '$1 Video-Snippets');
+      text = text.replace(/bei dem wir/g, 'bei denen wir');
+      text = text.replace(/ein Video mit Bewegtbildern/g, 'Videos mit Bewegtbildern');
+      text = text.replace(/(\d+x?)\s+Exposé Layout(?!s)/g, '$1 Exposé Layouts');
+      text = text.replace(/(\d+x?)\s+komplettes Exposé(?!s)/g, '$1 komplette Exposés');
+      // 360° Video-Tour first (more specific) so it isn't shadowed by "360° Tour"
+      text = text.replace(/(\d+x?)\s+360° Video-Tour(?!en)/g, '$1 360° Video-Touren');
+      text = text.replace(/(\d+x?)\s+360° Tour(?!en)\b/g, '$1 360° Touren');
+      text = text.replace(/folgender Wohneinheit:/g, 'folgender Wohneinheiten:');
+      text = text.replace(/folgender Einheit:/g, 'folgender Einheiten:');
     }
     return text;
   };
@@ -270,8 +298,9 @@ export default function PreviewPage() {
           }
         }
         // Dynamic pricing tiers for exterior-ground based on building type
+        // Per-instance override (service.buildingType) falls back to the global type
         if (service.name === '3D-Außenvisualisierung Bodenperspektive') {
-          const buildingType = data.projectInfo?.projectType;
+          const buildingType = service.buildingType || data.projectInfo?.projectType;
           if (buildingType) {
             const fmt = (p: number) => p.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
             const priceMatrix: Record<string, number[]> = {
@@ -318,8 +347,9 @@ export default function PreviewPage() {
         }
         // Bird view pricing: same as exterior-ground (building-type based)
         // Also sync sub_name with the building type (same labels as exterior-ground)
+        // Per-instance override (service.buildingType) falls back to the global type
         if (service.name === '3D-Außenvisualisierung Vogelperspektive') {
-          const buildingType = data.projectInfo?.projectType;
+          const buildingType = service.buildingType || data.projectInfo?.projectType;
           if (buildingType) {
             const fmt = (p: number) => p.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
             const birdPriceMatrix: Record<string, number[]> = {

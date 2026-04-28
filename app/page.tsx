@@ -405,7 +405,8 @@ export default function ProposalFormPage() {
     // Service-specific pricing logic (switch on baseId; dict lookups use serviceId for per-instance data)
     switch (baseId) {
       case 'exterior-ground': {
-        const buildingType = projectInfo.projectType; // Use global building type
+        // Per-instance override falls back to the global project building type
+        const buildingType = serviceBuildingTypes[serviceId] || projectInfo.projectType;
         if (!buildingType) return 0;
         
         const priceMatrix: Record<string, number[]> = {
@@ -423,7 +424,8 @@ export default function ProposalFormPage() {
       }
       
       case 'exterior-bird': {
-        const birdBuildingType = projectInfo.projectType; // Use global building type
+        // Per-instance override falls back to the global project building type
+        const birdBuildingType = serviceBuildingTypes[serviceId] || projectInfo.projectType;
         if (!birdBuildingType) return 0;
         
         const birdPriceMatrix: Record<string, number[]> = {
@@ -604,22 +606,46 @@ export default function ProposalFormPage() {
     });
 
     const services: ServiceData[] = [];
-    
-    activeServices.forEach(serviceId => {
+
+    // Build the iteration order so duplicates always appear right after their
+    // base service (matching the on-page rendering). `activeServices` is a Set
+    // whose insertion order interleaves duplicates after unrelated services
+    // when they are added later — that's why we don't iterate it directly.
+    const orderedServiceIds: string[] = [];
+    ALL_SERVICES.forEach(s => {
+      if (activeServices.has(s.id)) orderedServiceIds.push(s.id);
+      (serviceDuplicates[s.id] || []).forEach(copyKey => {
+        if (activeServices.has(copyKey)) orderedServiceIds.push(copyKey);
+      });
+    });
+    // Append any active service IDs not yet emitted (e.g. custom services,
+    // or copies whose base is missing from ALL_SERVICES) in their original
+    // insertion order so we never silently drop one.
+    activeServices.forEach(id => {
+      if (!orderedServiceIds.includes(id)) orderedServiceIds.push(id);
+    });
+
+    orderedServiceIds.forEach(serviceId => {
       const quantity = serviceQuantities[serviceId] || 0;
       if (quantity > 0) {
-        
+
         // Handle Custom Services
         if (serviceId.startsWith('custom-')) {
             const custom = customServices.find(s => s.id === serviceId);
             if (custom) {
                  const totalPrice = custom.unitPrice * quantity;
+                 // Only emit a description bullet when the user actually typed one.
+                 // Otherwise the empty entry renders as an undeletable blank bullet
+                 // in the preview and gets reinstated by every auto-save.
+                 const trimmedDesc = (custom.description || '').trim();
                  services.push({
                      name: custom.name,
                      quantity,
                      unitPrice: formatPriceForJSON(custom.unitPrice),
                      totalPrice: formatPriceForJSON(totalPrice),
-                     modifiedDefaults: [{ text: custom.description, children: [] }]
+                     modifiedDefaults: trimmedDesc
+                       ? [{ text: trimmedDesc, children: [] }]
+                       : []
                  });
             }
             return;
@@ -1107,6 +1133,7 @@ export default function ProposalFormPage() {
                 quantity: serviceQuantities[instanceKey] || 0,
                 customPrice: serviceCustomPrices[instanceKey],
                 buildingType: serviceBuildingTypes[instanceKey],
+                globalBuildingType: projectInfo.projectType,
                 apartmentSize: serviceApartmentSizes[instanceKey],
                 projectType: serviceProjectTypes[instanceKey],
                 areaSize: serviceAreaSizes[instanceKey],

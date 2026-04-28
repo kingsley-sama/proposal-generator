@@ -9,6 +9,7 @@ interface ServiceItemProps {
   quantity: number;
   customPrice?: number;
   buildingType?: string;
+  globalBuildingType?: string;
   apartmentSize?: string;
   projectType?: string;
   areaSize?: string;
@@ -31,6 +32,7 @@ export function ServiceItem({
   quantity,
   customPrice,
   buildingType,
+  globalBuildingType,
   apartmentSize,
   projectType,
   areaSize,
@@ -117,8 +119,32 @@ export function ServiceItem({
       {/* Service Details */}
       {isActive && (
         <div className="ml-8 mt-4 grid gap-4">
-          {/* Building Type selector moved to global project settings */}
-          
+          {/* Per-instance Gebäudetyp for exterior renderings (defaults to global) */}
+          {(baseServiceId === 'exterior-ground' || baseServiceId === 'exterior-bird') && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-800 mb-2">
+                Gebäudetyp (für diese Position)
+              </label>
+              <select
+                value={buildingType || ''}
+                onChange={(e) => onBuildingTypeChange?.(e.target.value)}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-slate-800"
+              >
+                <option value="">
+                  Standard{globalBuildingType ? ` (Projekt: ${globalBuildingType})` : ' (Projekt-Gebäudetyp)'}
+                </option>
+                <option value="EFH">EFH</option>
+                <option value="DHH">DHH</option>
+                <option value="MFH-3-5">MFH-3-5</option>
+                <option value="MFH-6-10">MFH-6-10</option>
+                <option value="MFH-11-15">MFH-11-15</option>
+              </select>
+              <span className="text-xs text-gray-700 mt-1 block">
+                Übernimmt standardmäßig den Projekt-Gebäudetyp; pro Position überschreibbar.
+              </span>
+            </div>
+          )}
+
           {/* Wohnungsgröße (für 360-interior) */}
           {baseServiceId === '360-interior' && (
             <div>
