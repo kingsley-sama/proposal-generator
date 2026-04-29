@@ -1,0 +1,254 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e376]:
+    - generic [ref=e377]:
+      - heading "📄 Angebotsvorschau" [level=1] [ref=e378]
+      - generic [ref=e379]:
+        - button "← Zurück zum Formular" [ref=e380]
+        - button "📄 DOCX erstellen" [ref=e381]
+    - generic [ref=e382]:
+      - generic [ref=e383]: 💡 Klicken Sie auf einen Text, um ihn zu bearbeiten. Änderungen werden automatisch gespeichert.
+      - generic [ref=e384]:
+        - generic [ref=e385]:
+          - generic [ref=e387]: ExposeProfi.de
+          - generic [ref=e388]: ExposeProfi.de | EPCS GmbH | Bruder-Klaus-Straße 3a | 78467 Konstanz
+          - generic [ref=e389]:
+            - generic [ref=e390]: Beispiel GmbH
+            - generic [ref=e391]: Hauptstraße 42
+            - generic [ref=e392]: 10115 Berlin
+            - generic [ref=e393]: Deutschland
+          - generic [ref=e394]: 29.04.2026
+          - generic [ref=e395]: Angebot Nr. 2026-04-29-8
+          - generic [ref=e396]: Vielen Dank für Ihre Anfrage und Ihr damit verbundenes Interesse an einer Zusammenarbeit.
+          - strong [ref=e398]: "Die Vorteile zusammengefasst, die Sie erwarten können:"
+          - generic [ref=e399]:
+            - generic [ref=e400]:
+              - strong [ref=e401]: "1. Fotorealismus:"
+              - text: Wir erstellen ausschließlich emotionale 3D-Visualisierungen der höchsten Qualitätsstufe.
+            - generic [ref=e402]:
+              - strong [ref=e403]: "2. Persönliche & individuelle Betreuung:"
+              - text: Sie erhalten bei jedem Projekt die Unterstützung von einem persönlichen Ansprechpartner, der die Visualisierungen individuell für Sie erstellt und immer per Telefon oder Email erreichbar ist.
+            - generic [ref=e404]:
+              - strong [ref=e405]: "3. Effiziente Prozesse & schnelle Lieferzeit:"
+              - text: Wie Sie sehen, melden wir uns innerhalb von 24h mit einem Angebot bei Ihnen. Ihr Projekt verläuft ab Start ebenso reibungslos und Sie erhalten die Visualisierungen schnellstmöglich.
+            - generic [ref=e406]:
+              - strong [ref=e407]: "4. Korrekturschleifen:"
+              - text: Falls Sie Änderungswünsche haben, bieten wir Ihnen ein eigenes Tool, mit dem Sie direkt in der Visualisierung Kommentare hinterlassen können. Das spart Zeit und Missverständnisse.
+            - generic [ref=e408]:
+              - strong [ref=e409]: "5. Preiswert:"
+              - text: Aufgrund effizienter Prozesse bieten wir günstigere Preise bei gleicher Qualität und besserer Betreuung.
+        - generic [ref=e410]:
+          - generic [ref=e411]:
+            - paragraph [ref=e412]: ExposeProfi.de
+            - paragraph [ref=e413]: EPCS GmbH
+            - paragraph [ref=e414]: "GF: Christopher Helm"
+            - paragraph [ref=e415]: Bruder-Klaus-Str. 3a, 78467 Konstanz
+            - paragraph [ref=e416]: HRB 725172, Amtsgericht Freiburg
+            - paragraph [ref=e417]: "St.-Nr: 0908011277"
+            - paragraph [ref=e418]: "USt-ID: DE347265281"
+          - generic [ref=e419]:
+            - paragraph [ref=e420]: Bankverbindung
+            - paragraph [ref=e421]: Qonto (Banque de France)
+            - paragraph [ref=e422]: IBAN DE62100101239488471916
+          - generic [ref=e423]:
+            - paragraph [ref=e424]: "Email: christopher.helm@exposeprofi.de"
+            - paragraph [ref=e425]: "Web: www.exposeprofi.de"
+            - paragraph [ref=e426]: "Tel: +49-7531-1227491"
+      - generic [ref=e427]:
+        - generic [ref=e428]:
+          - strong [ref=e430]: "Basierend auf den zugesandten Unterlagen unterbreiten wir Ihnen folgendes Angebot:"
+          - table [ref=e431]:
+            - rowgroup [ref=e432]:
+              - row "Anz. Bezeichnung Beschreibung Stückpreis netto" [ref=e433]:
+                - columnheader "Anz." [ref=e434]
+                - columnheader "Bezeichnung" [ref=e435]
+                - columnheader "Beschreibung" [ref=e436]
+                - columnheader "Stückpreis netto" [ref=e437]
+            - rowgroup [ref=e438]:
+              - 'row "3 3D-Außenvisualisierung Bodenperspektive (Projekt mit 3 bis 5 Wohneinheiten) ✎ Text bearbeiten Geliefert werden 3x gerenderte Außenansichten des Objektes „Sonnenhof Wohnanlage“ aus den folgenden Bodenperspektiven (siehe rote Pfeile): Fotorealistische Qualität Auf Wunsch eingefügt in von Ihnen zu liefernde Fotos oder schematische Modellierung der Umgebung Inkl. 1 Revisionsrunde⁽¹⁾ Format: 2.500 x 1.500 px (300 DPI) Referenzen: KLICK 359,00 €" [ref=e439]':
+                - cell "3" [ref=e440]
+                - cell "3D-Außenvisualisierung Bodenperspektive (Projekt mit 3 bis 5 Wohneinheiten)" [ref=e441]:
+                  - text: 3D-Außenvisualisierung Bodenperspektive
+                  - generic [ref=e442]: (Projekt mit 3 bis 5 Wohneinheiten)
+                - 'cell "✎ Text bearbeiten Geliefert werden 3x gerenderte Außenansichten des Objektes „Sonnenhof Wohnanlage“ aus den folgenden Bodenperspektiven (siehe rote Pfeile): Fotorealistische Qualität Auf Wunsch eingefügt in von Ihnen zu liefernde Fotos oder schematische Modellierung der Umgebung Inkl. 1 Revisionsrunde⁽¹⁾ Format: 2.500 x 1.500 px (300 DPI) Referenzen: KLICK" [ref=e443]':
+                  - generic "Klicken zum Bearbeiten der Beschreibung" [ref=e444] [cursor=pointer]:
+                    - generic: ✎ Text bearbeiten
+                    - list:
+                      - listitem: "Geliefert werden 3x gerenderte Außenansichten des Objektes „Sonnenhof Wohnanlage“ aus den folgenden Bodenperspektiven (siehe rote Pfeile):"
+                      - listitem: Fotorealistische Qualität
+                      - listitem: Auf Wunsch eingefügt in von Ihnen zu liefernde Fotos oder schematische Modellierung der Umgebung
+                      - listitem: Inkl. 1 Revisionsrunde⁽¹⁾
+                      - listitem: "Format: 2.500 x 1.500 px (300 DPI)"
+                      - listitem:
+                        - generic:
+                          - strong: "Referenzen:"
+                          - link "KLICK" [ref=e445]:
+                            - /url: https://www.exposeprofi.de/3d-visualisierungen/architekturvisualisierungen
+                - cell "359,00 €" [ref=e446]
+              - row "Preisstaffelung:" [ref=e447]:
+                - cell [ref=e448]
+                - cell [ref=e449]
+                - cell "Preisstaffelung:" [ref=e450]
+                - cell [ref=e451]
+              - 'row "1 Ansicht Netto: 599,00 €" [ref=e452]':
+                - cell [ref=e453]
+                - cell [ref=e454]
+                - 'cell "1 Ansicht Netto: 599,00 €" [ref=e455]'
+                - cell [ref=e456]
+              - 'row "2 Ansichten: Netto pro Ansicht: 399,00 €" [ref=e457]':
+                - cell [ref=e458]
+                - cell [ref=e459]
+                - 'cell "2 Ansichten: Netto pro Ansicht: 399,00 €" [ref=e460]'
+                - cell [ref=e461]
+              - 'row "3 Ansichten: Netto pro Ansicht: 359,00 €" [ref=e462]':
+                - cell [ref=e463]
+                - cell [ref=e464]
+                - 'cell "3 Ansichten: Netto pro Ansicht: 359,00 €" [ref=e465]'
+                - cell [ref=e466]
+              - 'row "4 Ansichten: Netto pro Ansicht: 329,00 €" [ref=e467]':
+                - cell [ref=e468]
+                - cell [ref=e469]
+                - 'cell "4 Ansichten: Netto pro Ansicht: 329,00 €" [ref=e470]'
+                - cell [ref=e471]
+              - 'row "5 Ansichten: Netto pro Ansicht: 299,00 €" [ref=e472]':
+                - cell [ref=e473]
+                - cell [ref=e474]
+                - 'cell "5 Ansichten: Netto pro Ansicht: 299,00 €" [ref=e475]'
+                - cell [ref=e476]
+              - 'row "2 3D-Grundriss ✎ Text bearbeiten Geliefert werden 2x 3D-Grundrisse des Objektes „Sonnenhof Wohnanlage“ folgender Einheiten: Hochwertig standardmöbliert Exklusive Qualität Inkl. 1 Revisionsrunde⁽¹⁾ 2.500px x 1.500 px bei 300 DPI Referenzen: KLICK 69,00 €" [ref=e477]':
+                - cell "2" [ref=e478]
+                - cell "3D-Grundriss" [ref=e479]
+                - 'cell "✎ Text bearbeiten Geliefert werden 2x 3D-Grundrisse des Objektes „Sonnenhof Wohnanlage“ folgender Einheiten: Hochwertig standardmöbliert Exklusive Qualität Inkl. 1 Revisionsrunde⁽¹⁾ 2.500px x 1.500 px bei 300 DPI Referenzen: KLICK" [ref=e480]':
+                  - generic "Klicken zum Bearbeiten der Beschreibung" [ref=e481] [cursor=pointer]:
+                    - generic: ✎ Text bearbeiten
+                    - list:
+                      - listitem: "Geliefert werden 2x 3D-Grundrisse des Objektes „Sonnenhof Wohnanlage“ folgender Einheiten:"
+                      - listitem: Hochwertig standardmöbliert
+                      - listitem: Exklusive Qualität
+                      - listitem: Inkl. 1 Revisionsrunde⁽¹⁾
+                      - listitem: 2.500px x 1.500 px bei 300 DPI
+                      - listitem:
+                        - generic:
+                          - strong: "Referenzen:"
+                          - link "KLICK" [ref=e482]:
+                            - /url: https://www.exposeprofi.de/3d-visualisierungen/3d-grundrisse
+                - cell "69,00 €" [ref=e483]
+              - 'row "4 Digital Home Staging ✎ Text bearbeiten Geliefert werden 4x Digital Home Staging Fotos der Räume: Basiert auf vom Kunden bereitgestellten Fotos Individuell eingerichtet Fotorealistische Qualität Exakt identische Perspektive wie zugrundeliegende Fotos Inkl. 1 Revisionsrunde⁽¹⁾ Referenzen: KLICK 99,00 €" [ref=e484]':
+                - cell "4" [ref=e485]
+                - cell "Digital Home Staging" [ref=e486]
+                - 'cell "✎ Text bearbeiten Geliefert werden 4x Digital Home Staging Fotos der Räume: Basiert auf vom Kunden bereitgestellten Fotos Individuell eingerichtet Fotorealistische Qualität Exakt identische Perspektive wie zugrundeliegende Fotos Inkl. 1 Revisionsrunde⁽¹⁾ Referenzen: KLICK" [ref=e487]':
+                  - generic "Klicken zum Bearbeiten der Beschreibung" [ref=e488] [cursor=pointer]:
+                    - generic: ✎ Text bearbeiten
+                    - list:
+                      - listitem: "Geliefert werden 4x Digital Home Staging Fotos der Räume:"
+                      - listitem: Basiert auf vom Kunden bereitgestellten Fotos
+                      - listitem: Individuell eingerichtet
+                      - listitem: Fotorealistische Qualität
+                      - listitem: Exakt identische Perspektive wie zugrundeliegende Fotos
+                      - listitem: Inkl. 1 Revisionsrunde⁽¹⁾
+                      - listitem:
+                        - generic:
+                          - strong: "Referenzen:"
+                          - link "KLICK" [ref=e489]:
+                            - /url: https://www.exposeprofi.de/digitales-home-staging
+                - cell "99,00 €" [ref=e490]
+              - row "1 Drohnenflug Bonus ✎ Text bearbeiten 4K Drohnenaufnahmen 250,00 €" [ref=e491]:
+                - cell "1" [ref=e492]
+                - cell "Drohnenflug Bonus" [ref=e493]
+                - cell "✎ Text bearbeiten 4K Drohnenaufnahmen" [ref=e494]:
+                  - generic "Klicken zum Bearbeiten der Beschreibung" [ref=e495] [cursor=pointer]:
+                    - generic: ✎ Text bearbeiten
+                    - list:
+                      - listitem: 4K Drohnenaufnahmen
+                - cell "250,00 €" [ref=e496]
+          - generic [ref=e497]: 💡 Klicken Sie auf Mengen, Namen, Beschreibungen oder Preise, um sie zu bearbeiten
+        - generic [ref=e498]:
+          - generic [ref=e499]:
+            - paragraph [ref=e500]: ExposeProfi.de
+            - paragraph [ref=e501]: EPCS GmbH
+            - paragraph [ref=e502]: "GF: Christopher Helm"
+            - paragraph [ref=e503]: Bruder-Klaus-Str. 3a, 78467 Konstanz
+            - paragraph [ref=e504]: HRB 725172, Amtsgericht Freiburg
+            - paragraph [ref=e505]: "St.-Nr: 0908011277"
+            - paragraph [ref=e506]: "USt-ID: DE347265281"
+          - generic [ref=e507]:
+            - paragraph [ref=e508]: Bankverbindung
+            - paragraph [ref=e509]: Qonto (Banque de France)
+            - paragraph [ref=e510]: IBAN DE62100101239488471916
+          - generic [ref=e511]:
+            - paragraph [ref=e512]: "Email: christopher.helm@exposeprofi.de"
+            - paragraph [ref=e513]: "Web: www.exposeprofi.de"
+            - paragraph [ref=e514]: "Tel: +49-7531-1227491"
+      - generic [ref=e515]:
+        - generic [ref=e516]:
+          - generic [ref=e517]: "Zusammenfassung:"
+          - table [ref=e518]:
+            - rowgroup [ref=e519]:
+              - row "Zwischensumme (Netto) 1.861,00 €" [ref=e520]:
+                - cell "Zwischensumme (Netto)" [ref=e521]:
+                  - strong [ref=e522]: Zwischensumme (Netto)
+                - cell "1.861,00 €" [ref=e523]:
+                  - strong [ref=e524]: 1.861,00 €
+              - 'row "Rabatt: - 10% (186,10 €) Entfernen" [ref=e525]':
+                - cell "Rabatt:" [ref=e526]:
+                  - strong [ref=e527]: "Rabatt:"
+                - cell "- 10% (186,10 €) Entfernen" [ref=e529]:
+                  - strong [ref=e530]:
+                    - text: "- 10%"
+                    - generic [ref=e531]: (186,10 €)
+                    - button "Entfernen" [ref=e532]
+              - row "Summe (Netto) 1.674,90 €" [ref=e533]:
+                - cell "Summe (Netto)" [ref=e534]:
+                  - strong [ref=e535]: Summe (Netto)
+                - cell "1.674,90 €" [ref=e536]:
+                  - strong [ref=e537]: 1.674,90 €
+              - row "MwSt. (19%) 318,23 €" [ref=e538]:
+                - cell "MwSt. (19%)" [ref=e539]:
+                  - strong [ref=e540]: MwSt. (19%)
+                - cell "318,23 €" [ref=e541]:
+                  - strong [ref=e542]: 318,23 €
+              - row "Gesamtbruttopreis 1.993,13 €" [ref=e543]:
+                - cell "Gesamtbruttopreis" [ref=e544]:
+                  - strong [ref=e545]: Gesamtbruttopreis
+                - cell "1.993,13 €" [ref=e546]:
+                  - strong [ref=e547]: 1.993,13 €
+          - paragraph [ref=e548]:
+            - strong [ref=e549]: "Dieses Angebot ist gültig bis: 06.05.26"
+          - generic [ref=e550]:
+            - paragraph [ref=e551]:
+              - strong [ref=e552]: "Lieferweg:"
+              - text: Digital via Email
+            - paragraph [ref=e553]:
+              - strong [ref=e554]: "Voraussichtl. Leistungsdatum:"
+              - text: 4-6 Arbeitstage nach Auftragseingang und Erhalt aller Unterlagen und Informationen
+          - paragraph [ref=e555]:
+            - text: Mit freundlichen Grüßen
+            - text: Christopher Helm
+          - generic [ref=e556]:
+            - paragraph [ref=e557]: "(1): Sollten Sie nach der gratis Revision eine weitere Revision benötigen, die nicht durch uns verschuldet wurde, führen wir diese standardmässig für 50 % des Nettopreises pro Visualisierung durch. Unsere effizienten Prozesse und die sehr hohe Qualität führen jedoch dazu, dass in der Regel eine einzige Revision ausreicht: In hunderten von Projekten benötigen unsere Kunden nur in 6 % aller Fälle eine zusätzliche Revision, und auch dann meist nur, wenn sich die Pläne nachträglich deutlich geändert haben."
+            - paragraph [ref=e558]: "Bitte beachten Sie: Bei Änderungen der Pläne (unabhängig davon, ob diese im Rahmen der gratis oder einer zusätzlichen Revision erfolgen) wird der Preis je nach Umfang der Veränderungen individuell festgelegt. Je nach Umfang dauert eine Revision mindestens 50 % der ursprünglichen Lieferzeit."
+            - paragraph [ref=e559]: "Haftungsausschluss: Wir sind stets bestrebt, Ihre Visualisierungen so detailgetreu wie möglich zu erstellen. Jedoch dienen die Visualisierungen nur der Veranschaulichung. Folglich wird keine Haftung für eventuelle Schäden auf Grund von Abweichungen übernommen."
+            - paragraph [ref=e560]: "Nutzungsrecht: Die Nutzung der durch uns erstellten Visualisierungen ist erst nach Zahlung gestattet."
+            - paragraph [ref=e561]: "Es gelten unsere allgemeinen Verkaufs- und Lieferbedingungen. Die gültige Version der allgemeinen Verkaufs- und Lieferbedingungen Stand 03/2023 finden Sie auf der Website: https://www.exposeprofi.de/agb. Außerdem auf Anforderung erhältlich."
+            - paragraph [ref=e562]: Nach der ersten vollständigen Lieferung aller bestellten Produkte wird das Projekt in Rechnung gestellt. Die im Angebot inbegriffene kostenlose Revision können Sie jederzeit in Anspruch nehmen.
+            - paragraph [ref=e563]: Damit wir Ihr Projekt zügig und planbar umsetzen können, reservieren wir feste Kapazitäten. Wenn Sie die vollständigen Unterlagen entgegen Ihrer ursprünglichen Planung nicht innerhalb von 30 Tagen nach Angebotsannahme einreichen können, bleibt Ihr Auftrag selbstverständlich erhalten. Wir wandeln ihn dann einfach in eine Gutscheinrechnung um. Der Gutschein ist 12 Monate gültig und kann flexibel für Visualisierungen des Objektes eingesetzt werden.
+          - generic [ref=e564]: 💡 Klicken Sie auf Preiswerte, um sie zu bearbeiten
+        - generic [ref=e565]:
+          - generic [ref=e566]:
+            - paragraph [ref=e567]: ExposeProfi.de
+            - paragraph [ref=e568]: EPCS GmbH
+            - paragraph [ref=e569]: "GF: Christopher Helm"
+            - paragraph [ref=e570]: Bruder-Klaus-Str. 3a, 78467 Konstanz
+            - paragraph [ref=e571]: HRB 725172, Amtsgericht Freiburg
+            - paragraph [ref=e572]: "St.-Nr: 0908011277"
+            - paragraph [ref=e573]: "USt-ID: DE347265281"
+          - generic [ref=e574]:
+            - paragraph [ref=e575]: Bankverbindung
+            - paragraph [ref=e576]: Qonto (Banque de France)
+            - paragraph [ref=e577]: IBAN DE62100101239488471916
+          - generic [ref=e578]:
+            - paragraph [ref=e579]: "Email: christopher.helm@exposeprofi.de"
+            - paragraph [ref=e580]: "Web: www.exposeprofi.de"
+            - paragraph [ref=e581]: "Tel: +49-7531-1227491"
+  - button "Open Next.js Dev Tools" [ref=e273] [cursor=pointer]:
+    - img [ref=e274]
+  - alert [ref=e291]
