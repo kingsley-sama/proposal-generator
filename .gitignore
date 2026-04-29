@@ -14,7 +14,13 @@
 # testing
 /coverage
 
-# next.js
+# next.js# Playwright MCP artifacts
+.playwright-mcp/
+
+# Temp / lock files
+*.log
+*.yml
+.~lock.*
 /.next/
 /out/
 

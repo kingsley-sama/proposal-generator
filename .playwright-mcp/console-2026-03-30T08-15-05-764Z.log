@@ -1,6 +1,0 @@
-[    1961ms] [ERROR] A props object containing a "key" prop is being spread into JSX:
-  let props = %s;
-  <%s {...props} />
-React keys must be passed directly to JSX without using spread:
-  let props = %s;
-  <%s key={someKey} {...props} /> {key: someKey, serviceId: ..., serviceName: ..., isActive: ..., quantity: ..., customPrice: ..., buildingType: ..., apartmentSize: ..., projectType: ..., areaSize: ..., price: ..., onToggle: ..., onQuantityChange: ..., onBuildingTypeChange: ..., onApartmentSizeChange: ..., onProjectTypeChange: ..., onAreaSizeChange: ..., onDuplicate: ..., onRemove: ...} ServiceItem {serviceId: ..., serviceName: ..., isActive: ..., quantity: ..., customPrice: ..., buildingType: ..., apartmentSize: ..., projectType: ..., areaSize: ..., price: ..., onToggle: ..., onQuantityChange: ..., onBuildingTypeChange: ..., onApartmentSizeChange: ..., onProjectTypeChange: ..., onAreaSizeChange: ..., onDuplicate: ..., onRemove: ...} ServiceItem @ http://localhost:3000/_next/static/chunks/2ff6d_next_dist_bc817883._.js:3127
