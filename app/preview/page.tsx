@@ -128,7 +128,14 @@ export default function PreviewPage() {
       text = text.replace(/(\d+x?)\s+3D-Geschosspläne/g, '$1 3D-Geschossplan');
       text = text.replace(/(\d+x?)\s+Digital Home Staging Fotos/g, '$1 Digital Home Staging Foto');
       text = text.replace(/(\d+x?)\s+Digitale Renovierungsfotos/g, '$1 Digitales Renovierungsfoto');
-      text = text.replace(/Bodenperspektiven/g, 'Bodenperspektive');
+      // Switch article + noun together so we don't corrupt unrelated bullets like
+      // "im Angebot aufgeführten Bodenperspektiven verfügbar" (exterior-bird).
+      text = text.replace(/aus den folgenden Bodenperspektiven/g, 'aus der folgenden Bodenperspektive');
+      text = text.replace(/aus den folgenden Vogelperspektiven/g, 'aus der folgenden Vogelperspektive');
+      text = text.replace(/\(siehe rote Pfeile\)/g, '(siehe roten Pfeil)');
+      text = text.replace(/\(siehe blaue Pfeile\)/g, '(siehe blauen Pfeil)');
+      // "der Räume:" (plural genitive) → "des Raumes:" (singular genitive)
+      text = text.replace(/ der Räume:/g, ' des Raumes:');
       // Newly-covered services (revert plural → singular)
       text = text.replace(/(\d+x?)\s+3D-Lagepläne/g, '$1 3D-Lageplan');
       text = text.replace(/(\d+x?)\s+Slideshow-Videos/g, '$1 Slideshow-Video');
@@ -143,6 +150,11 @@ export default function PreviewPage() {
       text = text.replace(/(\d+x?)\s+360° Touren\b/g, '$1 360° Tour');
       text = text.replace(/folgender Wohneinheiten:/g, 'folgender Wohneinheit:');
       text = text.replace(/folgender Einheiten:/g, 'folgender Einheit:');
+      // Terrace child bullet "Xx Terrassen (Whg. ..)" → singular
+      text = text.replace(/(\d+x?\s+)Terrassen(\s+\(Whg)/g, '$1Terrasse$2');
+      // Flat Finder
+      text = text.replace(/(\d+x?\s+)interaktive Flat Finder\b/g, '$1interaktiver Flat Finder');
+      text = text.replace(/\bals Kernelemente\b/g, 'als eines der Kernelemente');
     } else {
       // Plural: "Geliefert wird Xx ..." → "Geliefert werden Xx ..."
       text = text.replace(/Geliefert wird (\d+x?)/i, 'Geliefert werden $1');
@@ -155,7 +167,13 @@ export default function PreviewPage() {
       text = text.replace(/(\d+x?)\s+3D-Geschossplan(?!.*ä)/g, '$1 3D-Geschosspläne');
       text = text.replace(/(\d+x?)\s+Digital Home Staging Foto(?!s)/g, '$1 Digital Home Staging Fotos');
       text = text.replace(/(\d+x?)\s+Digitales Renovierungsfoto(?!s)/g, '$1 Digitale Renovierungsfotos');
-      text = text.replace(/Bodenperspektive(?!n)/g, 'Bodenperspektiven');
+      // Switch article + noun together — avoids touching "aufgeführten Bodenperspektiven".
+      text = text.replace(/aus der folgenden Bodenperspektive(?!n)/g, 'aus den folgenden Bodenperspektiven');
+      text = text.replace(/aus der folgenden Vogelperspektive(?!n)/g, 'aus den folgenden Vogelperspektiven');
+      text = text.replace(/\(siehe roten Pfeil\)/g, '(siehe rote Pfeile)');
+      text = text.replace(/\(siehe blauen Pfeil\)/g, '(siehe blaue Pfeile)');
+      // "des Raumes:" (singular genitive) → "der Räume:" (plural genitive)
+      text = text.replace(/ des Raumes:/g, ' der Räume:');
       // Newly-covered services (singular → plural)
       text = text.replace(/(\d+x?)\s+3D-Lageplan(?!\w)/g, '$1 3D-Lagepläne');
       text = text.replace(/(\d+x?)\s+Slideshow-Video(?!s)/g, '$1 Slideshow-Videos');
@@ -170,6 +188,11 @@ export default function PreviewPage() {
       text = text.replace(/(\d+x?)\s+360° Tour(?!en)\b/g, '$1 360° Touren');
       text = text.replace(/folgender Wohneinheit:/g, 'folgender Wohneinheiten:');
       text = text.replace(/folgender Einheit:/g, 'folgender Einheiten:');
+      // Terrace child bullet "Xx Terrasse (Whg. ..)" → plural
+      text = text.replace(/(\d+x?\s+)Terrasse(?!n)(\s+\(Whg)/g, '$1Terrassen$2');
+      // Flat Finder
+      text = text.replace(/(\d+x?\s+)interaktiver Flat Finder\b/g, '$1interaktive Flat Finder');
+      text = text.replace(/\bals eines der Kernelemente\b/g, 'als Kernelemente');
     }
     return text;
   };
