@@ -1180,7 +1180,6 @@ export default function PreviewPage() {
                       <tr key={`service-${index}`}>
                         <td className="border border-gray-800 p-1.5 text-center align-top text-gray-900">
                           <span
-                            key={`qty-${index}-${service.quantity}`}
                             contentEditable
                             suppressContentEditableWarning
                             onInput={(e) => {
@@ -1198,7 +1197,6 @@ export default function PreviewPage() {
                         </td>
                         <td className="border border-gray-800 p-1.5 align-top text-gray-900">
                           <span
-                            key={`name-${index}-${service.name}`}
                             contentEditable
                             suppressContentEditableWarning
                             onBlur={(e) => updateService(index, 'name', e.currentTarget.textContent || '')}
@@ -1210,7 +1208,6 @@ export default function PreviewPage() {
                           {service.sub_name && (
                             <div className="mt-0.5">
                               <span
-                                key={`subname-${index}-${service.sub_name}`}
                                 contentEditable
                                 suppressContentEditableWarning
                                 onBlur={(e) => updateService(index, 'sub_name', e.currentTarget.textContent || '')}
@@ -1305,7 +1302,6 @@ export default function PreviewPage() {
                         </td>
                         <td className="border border-gray-800 p-1.5 text-center align-top text-gray-900">
                           <span
-                            key={`price-${index}-${service.unitPrice}`}
                             contentEditable
                             suppressContentEditableWarning
                             onInput={(e) => {
@@ -1346,7 +1342,7 @@ export default function PreviewPage() {
                         // Split label into text prefix and editable price
                         const priceMatch = tier.label?.match(/^(.+?)\s*([\d.]+,\d{2})\s*€$/);
                         rows.push(
-                          <tr key={`tier-${index}-${tierIndex}-${tier.price}`} className="bg-gray-50">
+                          <tr key={`tier-${index}-${tierIndex}`} className="bg-gray-50">
                             <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
                             <td className="border border-gray-800 p-1 text-[8.5pt]">&nbsp;</td>
                             <td className="border border-gray-800 p-1 pl-5 text-[8.5pt] text-gray-900">
@@ -1354,7 +1350,6 @@ export default function PreviewPage() {
                                 <>
                                   {priceMatch[1]}{' '}
                                   <span
-                                    key={`tierprice-${index}-${tierIndex}-${tier.price}`}
                                     contentEditable
                                     suppressContentEditableWarning
                                     onBlur={(e) => {
