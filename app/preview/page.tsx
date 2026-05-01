@@ -511,6 +511,13 @@ export default function PreviewPage() {
       // When quantity changes, look up matching tier price and set unitPrice
       const qty = parseInt(value) || 1;
       const service = newServices[index];
+      // Re-sync description text so the quantity number and singular/plural
+      // forms match the new quantity (e.g. "Geliefert wird 1x ... Raumes:" →
+      // "Geliefert werden 11x ... Räume:"). Without this, modifiedDefaults
+      // stays frozen at whatever the previous quantity produced.
+      if (service.modifiedDefaults) {
+        service.modifiedDefaults = syncQuantityInDescriptions(service.modifiedDefaults, qty);
+      }
       const tierPrice = getTierPriceForQuantity(service.pricingTiers, qty);
       if (tierPrice !== null) {
         service.unitPrice = tierPrice.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
