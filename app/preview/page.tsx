@@ -876,10 +876,12 @@ export default function PreviewPage() {
   };
 
   // Helper: rebuild a tier label from its quantity and price
-  const rebuildTierLabel = (tier: any, allTiers: any[], tierIndex: number): string => {
+  const rebuildTierLabel = (tier: any, allTiers: any[], tierIndex: number, serviceName?: string): string => {
     const fmt = (p: number) => p.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     const isLast = tierIndex === allTiers.length - 1;
-    const prefix = isLast && allTiers.length > 1 ? '≥' : '';
+    const isExterior = serviceName === '3D-Außenvisualisierung Bodenperspektive' ||
+                       serviceName === '3D-Außenvisualisierung Vogelperspektive';
+    const prefix = isLast && allTiers.length > 1 && !isExterior ? '≥' : '';
     if (tier.quantity === 1) {
       return `1 Ansicht Netto: ${fmt(tier.price)} €`;
     }
@@ -893,7 +895,7 @@ export default function PreviewPage() {
     const service = { ...newServices[serviceIndex] };
     const tiers = [...(service.pricingTiers || [])];
     tiers[tierIndex] = { ...tiers[tierIndex], price: newPrice };
-    tiers[tierIndex].label = rebuildTierLabel(tiers[tierIndex], tiers, tierIndex);
+    tiers[tierIndex].label = rebuildTierLabel(tiers[tierIndex], tiers, tierIndex, service.name);
     service.pricingTiers = tiers;
 
     // If the current quantity matches this tier, update unitPrice
