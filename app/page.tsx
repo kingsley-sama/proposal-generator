@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Image from 'next/image';
 import { ServiceItem } from '@/components/ServiceItem';
 import { ImageUploadSection } from '@/components/ImageUploadSection';
@@ -926,7 +927,13 @@ export default function ProposalFormPage() {
               Angebot erstellen
             </p>
           </div>
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 flex items-center gap-5">
+            <Link
+              href="/proposals"
+              className="text-white/90 hover:text-white text-sm font-medium border border-white/30 rounded-md px-4 py-2 transition-colors"
+            >
+              Alle Angebote
+            </Link>
             <div className="text-white text-xl font-bold">ExposeProfi</div>
           </div>
         </div>
