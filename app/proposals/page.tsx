@@ -153,7 +153,7 @@ export default function ProposalsListPage() {
             </p>
           </div>
           <Link
-            href="/"
+            href="/generator"
             className="bg-white text-slate-900 text-sm font-semibold border border-white rounded-md px-4 py-2 hover:bg-gray-100 transition-colors whitespace-nowrap"
           >
             + New proposal
@@ -472,15 +472,15 @@ function ProposalModal({
               {/* Documents */}
               <Section title="Documents">
                 {data.document_url?.pdf || data.document_url?.docx ? (
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
                     {data.document_url?.pdf && (
                       <a
                         href={data.document_url.pdf}
                         target="_blank"
                         rel="noreferrer"
-                        className="bg-red-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
+                        className="text-blue-700 font-medium underline underline-offset-2 hover:text-blue-900"
                       >
-                        Open PDF
+                        View PDF in new tab ↗
                       </a>
                     )}
                     {data.document_url?.docx && (
@@ -488,9 +488,9 @@ function ProposalModal({
                         href={data.document_url.docx}
                         target="_blank"
                         rel="noreferrer"
-                        className="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                        className="text-blue-700 font-medium underline underline-offset-2 hover:text-blue-900"
                       >
-                        Open DOCX
+                        Download DOCX ↗
                       </a>
                     )}
                   </div>

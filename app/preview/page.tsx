@@ -283,7 +283,7 @@ export default function PreviewPage() {
       }
       if (!dataStr) {
         showNotification('Keine Angebotsdaten gefunden. Bitte füllen Sie zuerst das Formular aus.', 'error');
-        router.push('/');
+        router.push('/generator');
         return;
       }
       data = JSON.parse(dataStr);
@@ -1064,7 +1064,7 @@ export default function PreviewPage() {
         <h1 className="text-white text-xl font-semibold">📄 Angebotsvorschau</h1>
         <div className="flex gap-3">
           <button
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/generator')}
             className="px-6 py-2.5 bg-white/20 text-white rounded-md text-sm font-semibold hover:bg-white/30 transition-colors"
           >
             ← Zurück zum Formular

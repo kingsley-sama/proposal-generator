@@ -276,7 +276,7 @@ export default function EditProposalPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">Loading proposal…</div>
+        <div className="text-gray-700">Loading proposal…</div>
       </div>
     );
   }
@@ -404,7 +404,7 @@ export default function EditProposalPage() {
               Services ({services.length})
             </h2>
             {services.length === 0 ? (
-              <div className="text-sm text-gray-500 italic">No services on this proposal.</div>
+              <div className="text-sm text-gray-700 italic">No services on this proposal.</div>
             ) : (
               <div className="space-y-3">
                 {services.map((s, idx) => (
@@ -415,9 +415,9 @@ export default function EditProposalPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-gray-900">{s.name}</div>
-                        <div className="text-xs text-gray-500 mt-0.5 font-mono">{s.id}</div>
+                        <div className="text-xs text-gray-700 mt-0.5 font-mono">{s.id}</div>
                         {(s.buildingType || s.apartmentSize || s.projectType || s.areaSize) && (
-                          <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-x-3">
+                          <div className="text-xs text-gray-700 mt-1 flex flex-wrap gap-x-3">
                             {s.buildingType && <span>Building: {s.buildingType}</span>}
                             {s.apartmentSize && <span>Apartment: {s.apartmentSize}</span>}
                             {s.projectType && <span>Project: {s.projectType}</span>}
@@ -434,7 +434,7 @@ export default function EditProposalPage() {
                     </div>
                     <div className="grid grid-cols-3 gap-3 mt-3 text-sm">
                       <div>
-                        <label className="block text-xs text-gray-500 mb-1">Quantity</label>
+                        <label className="block text-xs text-gray-700 mb-1">Quantity</label>
                         <input
                           type="number"
                           min={0}
@@ -442,11 +442,11 @@ export default function EditProposalPage() {
                           onChange={(e) =>
                             updateServiceQuantity(idx, parseInt(e.target.value, 10) || 0)
                           }
-                          className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800/20 focus:border-slate-800"
+                          className="w-full border border-gray-400 rounded-md px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-slate-700 focus:border-slate-700"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-gray-500 mb-1">
+                        <label className="block text-xs text-gray-700 mb-1">
                           Custom unit price (€)
                         </label>
                         <input
@@ -458,12 +458,12 @@ export default function EditProposalPage() {
                           onChange={(e) =>
                             updateServiceCustomPrice(idx, parseFloat(e.target.value) || 0)
                           }
-                          className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800/20 focus:border-slate-800"
+                          className="w-full border border-gray-400 rounded-md px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-slate-700 focus:border-slate-700"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-gray-500 mb-1">Line total</label>
-                        <div className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-md text-sm tabular-nums">
+                        <label className="block text-xs text-gray-700 mb-1">Line total</label>
+                        <div className="px-3 py-2 bg-gray-100 border border-gray-400 rounded-md text-sm font-semibold text-gray-900 tabular-nums">
                           {formatMoney(Number(s.totalPrice) || 0)}
                         </div>
                       </div>
@@ -472,7 +472,7 @@ export default function EditProposalPage() {
                 ))}
               </div>
             )}
-            <p className="text-xs text-gray-500 mt-3 italic">
+            <p className="text-xs text-gray-700 mt-3 italic">
               To add a new service, use the new-proposal form. This page only edits existing
               services on a previously generated proposal.
             </p>
@@ -485,14 +485,14 @@ export default function EditProposalPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Discount type</label>
+                <label className="block text-xs text-gray-700 mb-1">Discount type</label>
                 <select
                   value={discount.type}
                   onChange={(e) => {
                     setDiscount((prev) => ({ ...prev, type: e.target.value as any }));
                     markDirty();
                   }}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800/20 focus:border-slate-800"
+                  className="w-full border border-gray-400 rounded-md px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-slate-700 focus:border-slate-700"
                 >
                   <option value="">No discount</option>
                   <option value="percentage">Percentage (%)</option>
@@ -500,7 +500,7 @@ export default function EditProposalPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Value</label>
+                <label className="block text-xs text-gray-700 mb-1">Value</label>
                 <input
                   type="number"
                   min={0}
@@ -511,11 +511,11 @@ export default function EditProposalPage() {
                     setDiscount((prev) => ({ ...prev, value: parseFloat(e.target.value) || 0 }));
                     markDirty();
                   }}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-800/20 focus:border-slate-800"
+                  className="w-full border border-gray-400 rounded-md px-3 py-2 text-sm text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:border-slate-700"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">Description</label>
+                <label className="block text-xs text-gray-700 mb-1">Description</label>
                 <input
                   type="text"
                   value={discount.description}
@@ -524,7 +524,7 @@ export default function EditProposalPage() {
                     setDiscount((prev) => ({ ...prev, description: e.target.value }));
                     markDirty();
                   }}
-                  className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-800/20 focus:border-slate-800"
+                  className="w-full border border-gray-400 rounded-md px-3 py-2 text-sm text-gray-900 bg-white disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:border-slate-700"
                 />
               </div>
             </div>
@@ -583,7 +583,7 @@ export default function EditProposalPage() {
                 )}
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-3">
+            <p className="text-xs text-gray-700 mt-3">
               <strong>Save changes</strong> updates the DB row only.{' '}
               <strong>Save & regenerate</strong> also rebuilds the .docx + PDF in storage (the n8n
               webhook is <em>not</em> re-fired). Images from the original proposal are not
@@ -601,7 +601,7 @@ export default function EditProposalPage() {
 function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="text-xs text-gray-500">{label}</div>
+      <div className="text-xs text-gray-700">{label}</div>
       <div className="text-sm text-gray-900 mt-0.5 break-words">{value}</div>
     </div>
   );
@@ -618,12 +618,12 @@ function LabeledInput({
 }) {
   return (
     <div>
-      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      <label className="block text-xs text-gray-700 mb-1">{label}</label>
       <input
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-800/20 focus:border-slate-800"
+        className="w-full border border-gray-400 rounded-md px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-slate-700 focus:border-slate-700"
       />
     </div>
   );
