@@ -1,12 +1,14 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-if (!process.env.AUTH_SECRET) {
-  throw new Error(
-    'AUTH_SECRET is not set. Add it to .env (e.g. `openssl rand -base64 32`).'
-  );
+function getKey(): Uint8Array {
+  if (!process.env.AUTH_SECRET) {
+    throw new Error(
+      'AUTH_SECRET is not set. Add it to .env (e.g. `openssl rand -base64 32`).'
+    );
+  }
+  return new TextEncoder().encode(process.env.AUTH_SECRET);
 }
-const key = new TextEncoder().encode(process.env.AUTH_SECRET);
 
 const SESSION_COOKIE = 'session';
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -21,11 +23,11 @@ export async function signToken(payload: SessionData) {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('1 day from now')
-    .sign(key);
+    .sign(getKey());
 }
 
 export async function verifyToken(input: string): Promise<SessionData> {
-  const { payload } = await jwtVerify(input, key, {
+  const { payload } = await jwtVerify(input, getKey(), {
     algorithms: ['HS256'],
   });
   return payload as SessionData;

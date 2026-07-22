@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNotification } from '@/contexts/NotificationContext';
 import { useProposal } from '@/contexts/ProposalContext';
@@ -25,6 +25,54 @@ interface ServiceDescription {
   description: any[];
   pricingTiers?: Array<{ quantity: number; price: number; label: string }>;
   link?: string;
+}
+
+// contentEditable cell whose text is managed imperatively instead of via React
+// children. Once the user types, the browser owns the DOM inside the span; if
+// React also renders children there, reconciliation after a state update
+// duplicates the text or crashes on insertBefore. React renders the span
+// empty; the value is written through a ref whenever it changes while the
+// cell is not focused.
+function EditableSpan({
+  value,
+  onInput,
+  onBlur,
+  onKeyDown,
+  className,
+  spanRef,
+}: {
+  value: string | number;
+  onInput?: (e: React.FormEvent<HTMLSpanElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLSpanElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLSpanElement>) => void;
+  className?: string;
+  spanRef?: React.RefObject<HTMLSpanElement | null>;
+}) {
+  const localRef = useRef<HTMLSpanElement>(null);
+  const ref = spanRef ?? localRef;
+  const text = String(value ?? '');
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el && document.activeElement !== el && el.textContent !== text) {
+      el.textContent = text;
+    }
+  }, [text, ref]);
+  return (
+    // translate="no" keeps browser auto-translate (e.g. Chrome/Google
+    // Translate) from replacing the text nodes with <font> wrappers, which
+    // both duplicates values visually and mangles German number formatting
+    // (comma decimal → dot) before it is parsed on blur.
+    <span
+      ref={ref}
+      translate="no"
+      contentEditable
+      suppressContentEditableWarning
+      onInput={onInput}
+      onBlur={onBlur}
+      onKeyDown={onKeyDown}
+      className={className}
+    />
+  );
 }
 
 const stripLeadingPercentageTokens = (value: string): string => {
@@ -1184,9 +1232,8 @@ export default function PreviewPage() {
                     rows.push(
                       <tr key={`service-${index}`}>
                         <td className="border border-gray-800 p-1.5 text-center align-top text-gray-900">
-                          <span
-                            contentEditable
-                            suppressContentEditableWarning
+                          <EditableSpan
+                            value={service.quantity}
                             onInput={(e) => {
                               recomputePricingLive(index, 'quantity', e.currentTarget.textContent || '0');
                             }}
@@ -1196,9 +1243,7 @@ export default function PreviewPage() {
                             }}
                             onKeyDown={handleEnterKey}
                             className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
-                          >
-                            {service.quantity}
-                          </span>
+                          />
                         </td>
                         <td className="border border-gray-800 p-1.5 align-top text-gray-900">
                           <span
@@ -1306,9 +1351,8 @@ export default function PreviewPage() {
                           })()}
                         </td>
                         <td className="border border-gray-800 p-1.5 text-center align-top text-gray-900">
-                          <span
-                            contentEditable
-                            suppressContentEditableWarning
+                          <EditableSpan
+                            value={service.unitPrice}
                             onInput={(e) => {
                               recomputePricingLive(index, 'unitPrice', e.currentTarget.textContent?.trim() || '0');
                             }}
@@ -1320,9 +1364,7 @@ export default function PreviewPage() {
                             }}
                             onKeyDown={handleEnterKey}
                             className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
-                          >
-                            {service.unitPrice}
-                          </span>
+                          />
                           {' €'}
                         </td>
                       </tr>
@@ -1354,9 +1396,8 @@ export default function PreviewPage() {
                               {priceMatch ? (
                                 <>
                                   {priceMatch[1]}{' '}
-                                  <span
-                                    contentEditable
-                                    suppressContentEditableWarning
+                                  <EditableSpan
+                                    value={priceMatch[2]}
                                     onBlur={(e) => {
                                       const raw = e.currentTarget.textContent?.replace(/\./g, '').replace(',', '.') || '0';
                                       const parsed = parseFloat(raw);
@@ -1364,9 +1405,7 @@ export default function PreviewPage() {
                                     }}
                                     onKeyDown={handleEnterKey}
                                     className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
-                                  >
-                                    {priceMatch[2]}
-                                  </span>
+                                  />
                                   {' €'}
                                 </>
                               ) : tier.label}
@@ -1440,16 +1479,13 @@ export default function PreviewPage() {
                   </td>
                   <td className="border border-gray-800 p-1.5 w-[30%] text-center text-gray-900">
                     <strong>
-                      <span
-                        ref={subtotalNetRef}
-                        contentEditable
-                        suppressContentEditableWarning
+                      <EditableSpan
+                        spanRef={subtotalNetRef}
+                        value={proposalData.pricing.subtotalNet}
                         onBlur={(e) => handleEditableBlur('pricing.subtotalNet', e)}
                         onKeyDown={handleEnterKey}
                         className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
-                      >
-                        {proposalData.pricing.subtotalNet}
-                      </span> €
+                      /> €
                     </strong>
                   </td>
                 </tr>
@@ -1488,7 +1524,7 @@ export default function PreviewPage() {
                         </span>
                         {'% '}
                         <span className="text-gray-600 text-[9pt] ml-1">
-                          (<span ref={discountAmountRef}>{calculatePercentageDiscount()}</span> €)
+                          (<span ref={discountAmountRef} translate="no">{calculatePercentageDiscount()}</span> €)
                         </span>
                         <button
                           onClick={removeDiscount}
@@ -1507,16 +1543,13 @@ export default function PreviewPage() {
                   </td>
                   <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                     <strong>
-                      <span
-                        ref={totalNetPriceRef}
-                        contentEditable
-                        suppressContentEditableWarning
+                      <EditableSpan
+                        spanRef={totalNetPriceRef}
+                        value={proposalData.pricing.totalNetPrice}
                         onBlur={(e) => handleEditableBlur('pricing.totalNetPrice', e)}
                         onKeyDown={handleEnterKey}
                         className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
-                      >
-                        {proposalData.pricing.totalNetPrice}
-                      </span> €
+                      /> €
                     </strong>
                   </td>
                 </tr>
@@ -1527,16 +1560,13 @@ export default function PreviewPage() {
                   </td>
                   <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                     <strong>
-                      <span
-                        ref={totalVatRef}
-                        contentEditable
-                        suppressContentEditableWarning
+                      <EditableSpan
+                        spanRef={totalVatRef}
+                        value={proposalData.pricing.totalVat}
                         onBlur={(e) => handleEditableBlur('pricing.totalVat', e)}
                         onKeyDown={handleEnterKey}
                         className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
-                      >
-                        {proposalData.pricing.totalVat}
-                      </span> €
+                      /> €
                     </strong>
                   </td>
                 </tr>
@@ -1547,16 +1577,13 @@ export default function PreviewPage() {
                   </td>
                   <td className="border border-gray-800 p-1.5 text-center text-gray-900">
                     <strong>
-                      <span
-                        ref={totalGrossPriceRef}
-                        contentEditable
-                        suppressContentEditableWarning
+                      <EditableSpan
+                        spanRef={totalGrossPriceRef}
+                        value={proposalData.pricing.totalGrossPrice}
                         onBlur={(e) => handleEditableBlur('pricing.totalGrossPrice', e)}
                         onKeyDown={handleEnterKey}
                         className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
-                      >
-                        {proposalData.pricing.totalGrossPrice}
-                      </span> €
+                      /> €
                     </strong>
                   </td>
                 </tr>

@@ -143,86 +143,95 @@ export default function ProposalsListPage() {
   }, [load]);
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4">
-      <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
-        <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-8 md:px-10 py-8 flex items-center justify-between">
+    <div className="min-h-screen bg-gray-100 [font-family:var(--font-manrope)]">
+      {/* Header band */}
+      <div className="bg-gradient-to-r from-slate-800 to-slate-700 shadow-lg">
+        <div className="max-w-[1700px] mx-auto px-6 md:px-10 py-7 flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-white text-3xl font-semibold tracking-tight">Proposals</h1>
-            <p className="text-white/80 mt-1 text-sm">
+            <h1 className="text-white text-2xl md:text-3xl font-bold tracking-tight">Proposals</h1>
+            <p className="text-white/70 mt-1 text-sm">
               Retrieve, edit, and mark proposals as ready
             </p>
           </div>
           <Link
             href="/generator"
-            className="bg-white text-slate-900 text-sm font-semibold border border-white rounded-md px-4 py-2 hover:bg-gray-100 transition-colors whitespace-nowrap"
+            className="bg-white text-slate-900 text-sm font-semibold rounded-md px-4 py-2.5 hover:bg-gray-100 transition-colors whitespace-nowrap shadow-sm"
           >
             + New proposal
           </Link>
         </div>
+      </div>
 
-        <div className="px-8 md:px-10 py-8">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              load();
-            }}
-            className="flex flex-col sm:flex-row gap-3 mb-6"
-          >
+      <div className="max-w-[1700px] mx-auto px-6 md:px-10 py-8">
+        {/* Toolbar */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            load();
+          }}
+          className="flex flex-col sm:flex-row sm:items-center gap-3 mb-5"
+        >
+          <div className="relative flex-1">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" aria-hidden>⌕</span>
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by company, offer number, project…"
-              className="flex-1 bg-white border border-gray-400 rounded-md px-4 py-2.5 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:border-slate-700"
+              className="w-full bg-white border border-gray-300 rounded-lg pl-9 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-700 focus:border-slate-700"
             />
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className="bg-white border border-gray-400 rounded-md px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-slate-700 focus:border-slate-700"
-            >
-              {STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-slate-800 text-white text-sm font-semibold px-6 py-2.5 rounded-md hover:bg-slate-900 disabled:opacity-60 transition-colors"
-            >
-              {loading ? 'Loading…' : 'Search'}
-            </button>
-          </form>
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-300 text-red-800 text-sm rounded">
-              {error}
-            </div>
-          )}
-
-          <div className="text-xs font-medium text-gray-600 mb-2">
-            {loading ? 'Loading…' : `${total} proposal${total === 1 ? '' : 's'}`}
           </div>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-sm text-gray-900 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-700 focus:border-slate-700"
+          >
+            {STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-slate-800 text-white text-sm font-semibold px-6 py-2.5 rounded-lg hover:bg-slate-900 disabled:opacity-60 transition-colors shadow-sm"
+          >
+            {loading ? 'Loading…' : 'Search'}
+          </button>
+          <div className="sm:ml-2 text-xs font-medium text-gray-500 whitespace-nowrap">
+            {loading ? '…' : `${total} proposal${total === 1 ? '' : 's'}`}
+          </div>
+        </form>
 
-          <div className="w-full overflow-x-auto border border-gray-300 rounded-lg shadow-sm">
-            <table className="min-w-[1000px] w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-slate-100">
-                <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Offer #</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Company</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Project</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700 whitespace-nowrap">Total</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
-                  <th className="px-4 py-3 text-left font-semibold text-gray-700 whitespace-nowrap">Updated</th>
-                  <th className="px-4 py-3 text-right font-semibold text-gray-700 whitespace-nowrap">Actions</th>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-300 text-red-800 text-sm rounded-lg">
+            {error}
+          </div>
+        )}
+
+        <div className="w-full overflow-x-auto bg-white border border-gray-200 rounded-xl shadow-sm">
+          <table className="min-w-[1100px] w-full divide-y divide-gray-200 text-sm">
+              <thead className="bg-slate-50">
+                <tr className="text-[11px] uppercase tracking-wider text-gray-500">
+                  <th className="px-5 py-3.5 text-left font-semibold whitespace-nowrap">Offer #</th>
+                  <th className="px-5 py-3.5 text-left font-semibold">Company</th>
+                  <th className="px-5 py-3.5 text-left font-semibold">Project</th>
+                  <th className="px-5 py-3.5 text-right font-semibold whitespace-nowrap">Total</th>
+                  <th className="px-5 py-3.5 text-left font-semibold">Status</th>
+                  <th className="px-5 py-3.5 text-left font-semibold whitespace-nowrap">Updated</th>
+                  <th className="px-5 py-3.5 text-right font-semibold whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
                 {rows.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-10 text-center text-gray-500">
-                      No proposals found.
+                    <td colSpan={7} className="px-5 py-16 text-center">
+                      <div className="text-gray-400 text-3xl mb-2" aria-hidden>📄</div>
+                      <div className="text-gray-600 font-medium">No proposals found</div>
+                      <div className="text-gray-400 text-xs mt-1">
+                        Adjust your search or create a new proposal.
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -231,40 +240,45 @@ export default function ProposalsListPage() {
                   const statusStyle =
                     STATUS_STYLES[statusKey] || 'bg-gray-100 text-gray-800 border-gray-300';
                   return (
-                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs text-gray-800 whitespace-nowrap">
+                    <tr
+                      key={p.id}
+                      className="hover:bg-slate-50 transition-colors cursor-pointer"
+                      onClick={() => setViewOffer(p.offer_number)}
+                    >
+                      <td className="px-5 py-3.5 font-mono text-xs text-gray-800 whitespace-nowrap">
                         {p.offer_number}
                       </td>
-                      <td className="px-4 py-3 text-gray-900 font-medium max-w-xs truncate" title={p.company_name || ''}>
+                      <td className="px-5 py-3.5 text-gray-900 font-semibold max-w-[320px] truncate" title={p.company_name || ''}>
                         {p.company_name || '—'}
                       </td>
-                      <td className="px-4 py-3 text-gray-700 max-w-xs truncate" title={p.project_name || p.project_number || ''}>
+                      <td className="px-5 py-3.5 text-gray-600 max-w-[280px] truncate" title={p.project_name || p.project_number || ''}>
                         {p.project_name || p.project_number || '—'}
                       </td>
-                      <td className="px-4 py-3 text-right text-gray-900 font-semibold tabular-nums whitespace-nowrap">
+                      <td className="px-5 py-3.5 text-right text-gray-900 font-semibold tabular-nums whitespace-nowrap">
                         {formatMoney(p.total_price, p.currency)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-5 py-3.5">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-semibold capitalize ${statusStyle}`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-xs font-semibold capitalize ${statusStyle}`}
                         >
+                          <span className="w-1.5 h-1.5 rounded-full bg-current opacity-60" aria-hidden />
                           {p.proposal_status || 'draft'}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                      <td className="px-5 py-3.5 text-xs text-gray-500 whitespace-nowrap">
                         {formatDate(p.updated_at || p.created_at)}
                       </td>
-                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <div className="inline-flex items-center gap-2">
                           <button
                             onClick={() => setViewOffer(p.offer_number)}
-                            className="text-slate-700 hover:text-white hover:bg-slate-700 border border-slate-300 rounded-md px-3 py-1 text-xs font-semibold transition-colors"
+                            className="text-slate-700 hover:text-white hover:bg-slate-700 border border-slate-300 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors"
                           >
                             View
                           </button>
                           <Link
                             href={`/proposals/${encodeURIComponent(p.offer_number)}/edit`}
-                            className="bg-slate-800 text-white hover:bg-slate-900 rounded-md px-3 py-1 text-xs font-semibold transition-colors"
+                            className="bg-slate-800 text-white hover:bg-slate-900 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors"
                           >
                             Edit
                           </Link>
@@ -275,7 +289,6 @@ export default function ProposalsListPage() {
                 })}
               </tbody>
             </table>
-          </div>
         </div>
       </div>
 
@@ -343,7 +356,7 @@ function ProposalModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl my-4"
+        className="bg-white rounded-xl shadow-2xl w-full max-w-4xl my-4 [font-family:var(--font-manrope)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal header */}

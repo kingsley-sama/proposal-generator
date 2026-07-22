@@ -275,15 +275,16 @@ export default function EditProposalPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-700">Loading proposal…</div>
+      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center [font-family:var(--font-manrope)]">
+        <div className="w-10 h-10 border-4 border-slate-300 border-t-slate-700 rounded-full animate-spin mb-4" />
+        <div className="text-gray-600 text-sm">Loading proposal…</div>
       </div>
     );
   }
 
   if (error && !proposal) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="min-h-screen bg-gray-100 py-8 px-4 [font-family:var(--font-manrope)]">
         <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-8">
           <div className="text-red-700">{error}</div>
           <Link href="/proposals" className="mt-4 inline-block text-slate-800 hover:underline">
@@ -300,51 +301,57 @@ export default function EditProposalPage() {
   const isReady = status === 'ready';
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-5xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
-        <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-10 py-6 flex items-start justify-between">
+    <div className="min-h-screen bg-gray-100 [font-family:var(--font-manrope)]">
+      {/* Header band */}
+      <div className="bg-gradient-to-r from-slate-800 to-slate-700 shadow-lg">
+        <div className="max-w-[1500px] mx-auto px-6 md:px-10 py-6 flex items-start justify-between gap-4">
           <div>
-            <Link href="/proposals" className="text-white/70 hover:text-white text-xs">
+            <Link href="/proposals" className="text-white/60 hover:text-white text-xs font-medium">
               ← All proposals
             </Link>
-            <h1 className="text-white text-2xl font-semibold mt-1">
+            <h1 className="text-white text-2xl font-bold mt-1 flex items-center gap-3 flex-wrap">
               Edit proposal{' '}
-              <span className="font-mono text-lg text-white/80">{proposal.offer_number}</span>
+              <span className="font-mono text-lg font-normal text-white/80">{proposal.offer_number}</span>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 border border-white/25 text-white text-xs font-semibold capitalize">
+                <span className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-emerald-400' : 'bg-amber-300'}`} aria-hidden />
+                {status}
+              </span>
             </h1>
-            <p className="text-white/70 text-sm mt-1">
-              Current status: <span className="font-medium capitalize">{status}</span>
-            </p>
           </div>
           {proposal.document_url?.pdf && (
             <a
               href={proposal.document_url.pdf}
               target="_blank"
               rel="noreferrer"
-              className="text-white/90 hover:text-white text-sm border border-white/30 rounded-md px-4 py-2"
+              className="shrink-0 text-white/90 hover:text-white hover:border-white/60 text-sm border border-white/30 rounded-md px-4 py-2 transition-colors"
             >
-              Open current PDF
+              Open current PDF ↗
             </a>
           )}
         </div>
+      </div>
 
-        <div className="px-10 py-8 space-y-8">
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded">
-              {error}
-            </div>
-          )}
-          {info && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded">
-              {info}
-            </div>
-          )}
+      <div className="max-w-[1500px] mx-auto px-6 md:px-10 py-8">
+        {error && (
+          <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
+            {error}
+          </div>
+        )}
+        {info && (
+          <div className="mb-6 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-lg">
+            {info}
+          </div>
+        )}
 
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
+        {/* Main column */}
+        <div className="space-y-6 min-w-0">
           {/* Locked metadata */}
-          <section>
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+          <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
               Locked fields (not editable here)
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <Field label="Client ID" value={proposal.client_id?.toString() || '—'} />
               <Field label="Project number" value={proposal.project_number || '—'} />
               <Field label="Project name" value={proposal.project_name || '—'} />
@@ -365,8 +372,8 @@ export default function EditProposalPage() {
           </section>
 
           {/* Contact info */}
-          <section>
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+          <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
               Contact info
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -399,18 +406,18 @@ export default function EditProposalPage() {
           </section>
 
           {/* Services */}
-          <section>
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+          <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
               Services ({services.length})
             </h2>
             {services.length === 0 ? (
-              <div className="text-sm text-gray-700 italic">No services on this proposal.</div>
+              <div className="text-sm text-gray-500 italic">No services on this proposal.</div>
             ) : (
               <div className="space-y-3">
                 {services.map((s, idx) => (
                   <div
                     key={`${s.id}-${idx}`}
-                    className="border border-gray-200 rounded-lg p-4 bg-white"
+                    className="border border-gray-200 rounded-lg p-4 bg-gray-50/60 hover:border-gray-300 transition-colors"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -478,12 +485,16 @@ export default function EditProposalPage() {
             </p>
           </section>
 
+        </div>
+
+        {/* Sidebar: pricing + actions */}
+        <aside className="space-y-6 lg:sticky lg:top-8">
           {/* Pricing */}
-          <section>
-            <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">
+          <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
               Pricing
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 gap-4 mb-4">
               <div>
                 <label className="block text-xs text-gray-700 mb-1">Discount type</label>
                 <select
@@ -549,49 +560,50 @@ export default function EditProposalPage() {
           </section>
 
           {/* Actions */}
-          <section className="border-t border-gray-200 pt-6">
-            <div className="flex flex-wrap items-center gap-3">
+          <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              Actions
+            </h2>
+            <div className="flex flex-col gap-2.5">
               <button
                 onClick={() => persist({ regenerate: false })}
                 disabled={saving !== 'idle' || !dirty}
-                className="bg-slate-800 text-white text-sm px-5 py-2 rounded-md hover:bg-slate-700 disabled:opacity-50"
+                className="w-full bg-slate-800 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors"
               >
-                {saving === 'db' ? 'Saving…' : 'Save changes'}
+                {saving === 'db' ? 'Saving…' : dirty ? 'Save changes' : 'No unsaved changes'}
               </button>
               <button
                 onClick={() => persist({ regenerate: true })}
                 disabled={saving !== 'idle'}
-                className="bg-indigo-700 text-white text-sm px-5 py-2 rounded-md hover:bg-indigo-600 disabled:opacity-50"
+                className="w-full bg-indigo-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-indigo-600 disabled:opacity-50 transition-colors"
                 title="Save changes and regenerate the .docx + PDF in storage"
               >
                 {saving === 'regen' ? 'Regenerating…' : 'Save & regenerate documents'}
               </button>
-
-              <div className="ml-auto flex items-center gap-3">
-                {isReady ? (
-                  <span className="text-emerald-700 text-sm font-medium">
-                    ✓ Marked as ready
-                  </span>
-                ) : (
-                  <button
-                    onClick={markReady}
-                    disabled={saving !== 'idle'}
-                    className="bg-emerald-600 text-white text-sm px-5 py-2 rounded-md hover:bg-emerald-500 disabled:opacity-50"
-                  >
-                    {saving === 'ready' ? 'Marking…' : 'Mark as ready'}
-                  </button>
-                )}
-              </div>
+              {isReady ? (
+                <div className="w-full text-center text-emerald-700 bg-emerald-50 border border-emerald-200 text-sm font-medium px-5 py-2.5 rounded-lg">
+                  ✓ Marked as ready
+                </div>
+              ) : (
+                <button
+                  onClick={markReady}
+                  disabled={saving !== 'idle'}
+                  className="w-full bg-emerald-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-emerald-500 disabled:opacity-50 transition-colors"
+                >
+                  {saving === 'ready' ? 'Marking…' : 'Mark as ready'}
+                </button>
+              )}
             </div>
-            <p className="text-xs text-gray-700 mt-3">
-              <strong>Save changes</strong> updates the DB row only.{' '}
-              <strong>Save & regenerate</strong> also rebuilds the .docx + PDF in storage (the n8n
+            <p className="text-xs text-gray-500 mt-4 leading-relaxed">
+              <strong className="text-gray-700">Save changes</strong> updates the DB row only.{' '}
+              <strong className="text-gray-700">Save & regenerate</strong> also rebuilds the .docx + PDF in storage (the n8n
               webhook is <em>not</em> re-fired). Images from the original proposal are not
-              re-included on regenerate. <strong>Mark as ready</strong> sets{' '}
+              re-included on regenerate. <strong className="text-gray-700">Mark as ready</strong> sets{' '}
               <code className="bg-gray-100 px-1 rounded">proposal_status = &apos;ready&apos;</code>{' '}
               so downstream automation can pick it up.
             </p>
           </section>
+        </aside>
         </div>
       </div>
     </div>
