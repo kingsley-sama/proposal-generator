@@ -149,7 +149,15 @@ export async function POST(request: Request) {
 
     const generator = new TemplateDocxProposalGenerator(docxData);
     const { buffer: docxBuffer } = await generator.generate();
-    const pdfBuffer: Buffer = await libreConvertAsync(docxBuffer, '.pdf', undefined);
+    // PDF conversion needs LibreOffice (soffice) on the host. Treat it as
+    // best-effort: without it the proposal is still generated and returned,
+    // only the PDF copy in storage / webhook is skipped.
+    let pdfBuffer: Buffer | null = null;
+    try {
+      pdfBuffer = await libreConvertAsync(docxBuffer, '.pdf', undefined);
+    } catch (convertError: any) {
+      console.error('⚠️  PDF conversion failed (DOCX still generated). Install LibreOffice to enable PDFs:', convertError.message);
+    }
     console.log('✅ Files generated in memory');
 
     // Upload DOCX + PDF to Supabase Storage

@@ -1016,8 +1016,9 @@ export default function PreviewPage() {
 
   if (!proposalData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-gray-700 text-lg italic">Angebotsdaten werden geladen...</div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 [font-family:var(--font-manrope)]">
+        <div className="w-[280px] h-[396px] rounded-sm bg-white border border-gray-200 shadow-sm animate-pulse mb-6" />
+        <div className="text-gray-500 text-sm tracking-wide">Angebotsdaten werden geladen …</div>
       </div>
     );
   }
@@ -1080,12 +1081,13 @@ export default function PreviewPage() {
       </div>
 
       {/* Content Area */}
-      <div className="pt-20 pb-10 px-0 w-[210mm] max-w-full">
+      <div className="pt-24 pb-16 px-0 w-[210mm] max-w-full">
         <div className="text-xs text-gray-600 italic mb-4 text-center">
           💡 Klicken Sie auf einen Text, um ihn zu bearbeiten. Änderungen werden automatisch gespeichert.
         </div>
         {/* Page 1: Cover */}
-        <div className="w-full min-h-[1122px] bg-white shadow-lg border border-gray-300 p-24 mb-10 flex flex-col relative">
+        <SheetLabel title="Anschreiben" />
+        <div className="w-full min-h-[1122px] bg-white border border-gray-300 shadow-[0_1px_3px_rgba(15,23,42,0.08),0_12px_28px_-12px_rgba(15,23,42,0.18)] rounded-[3px] p-24 mb-12 flex flex-col relative">
           <div className="flex-1 pb-24">
             {/* Logo */}
             <div className="flex justify-end mb-6">
@@ -1149,7 +1151,8 @@ export default function PreviewPage() {
         </div>
 
         {/* Page 2: Services Table */}
-        <div className="w-full min-h-[1122px] bg-white shadow-lg border border-gray-300 p-24 mb-10 flex flex-col relative">
+        <SheetLabel title="Leistungen & Preise" />
+        <div className="w-full min-h-[1122px] bg-white border border-gray-300 shadow-[0_1px_3px_rgba(15,23,42,0.08),0_12px_28px_-12px_rgba(15,23,42,0.18)] rounded-[3px] p-24 mb-12 flex flex-col relative">
           <div className="flex-1 pb-24">
             <div className="mb-4 text-[10pt] leading-normal text-gray-900">
               <strong className="text-gray-900">Basierend auf den zugesandten Unterlagen unterbreiten wir Ihnen folgendes Angebot:</strong>
@@ -1192,7 +1195,7 @@ export default function PreviewPage() {
                               updateService(index, 'quantity', newQty);
                             }}
                             onKeyDown={handleEnterKey}
-                            className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                            className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
                           >
                             {service.quantity}
                           </span>
@@ -1203,7 +1206,7 @@ export default function PreviewPage() {
                             suppressContentEditableWarning
                             onBlur={(e) => updateService(index, 'name', e.currentTarget.textContent || '')}
                             onKeyDown={handleEnterKey}
-                            className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                            className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
                           >
                             {service.name}
                           </span>
@@ -1214,7 +1217,7 @@ export default function PreviewPage() {
                                 suppressContentEditableWarning
                                 onBlur={(e) => updateService(index, 'sub_name', e.currentTarget.textContent || '')}
                                 onKeyDown={handleEnterKey}
-                                className="text-xs text-gray-600 italic cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                                className="text-xs text-gray-600 italic cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
                               >
                                 {service.sub_name}
                               </span>
@@ -1237,15 +1240,15 @@ export default function PreviewPage() {
                                             placeholder="- Hauptpunkt&#10;-- Unterpunkt&#10;--- Unter-Unterpunkt"
                                         />
                                         <div className="flex gap-2">
-                                            <button 
-                                                onClick={saveBulkEdit} 
-                                                className="bg-green-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-green-600"
+                                            <button
+                                                onClick={saveBulkEdit}
+                                                className="bg-[#2F6FED] text-white px-3.5 py-1.5 rounded-full text-xs font-bold hover:bg-[#2558C4] transition-colors [font-family:var(--font-manrope)]"
                                             >
                                                 Speichern
                                             </button>
-                                            <button 
-                                                onClick={() => setEditingServiceIndex(null)} 
-                                                className="bg-gray-500 text-white px-3 py-1 rounded text-xs font-bold hover:bg-gray-600"
+                                            <button
+                                                onClick={() => setEditingServiceIndex(null)}
+                                                className="text-gray-600 border border-gray-300 px-3.5 py-1.5 rounded-full text-xs font-bold hover:bg-gray-100 transition-colors [font-family:var(--font-manrope)]"
                                             >
                                                 Abbrechen
                                             </button>
@@ -1270,11 +1273,11 @@ export default function PreviewPage() {
                                 onClick={(e) => {
                                     startBulkEdit(index, descriptions);
                                 }}
-                                className="cursor-pointer hover:bg-yellow-50 p-1 -m-1 rounded transition-colors relative group"
+                                className="cursor-pointer hover:bg-[#EDF3FF] p-1 -m-1 rounded transition-colors relative group"
                                 title="Klicken zum Bearbeiten der Beschreibung"
                               >
-                                <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 bg-blue-100 text-blue-800 text-[9px] px-1 rounded border border-blue-200 pointer-events-none z-10">
-                                    ✎ Text bearbeiten
+                                <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 bg-[#2F6FED] text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-full pointer-events-none z-10 [font-family:var(--font-manrope)]">
+                                    Text bearbeiten
                                 </div>
                                 <ul className="list-disc ml-3.5 my-1 pointer-events-none">
                                   {descriptions.map((desc: any, i: number) => (
@@ -1316,7 +1319,7 @@ export default function PreviewPage() {
                               updateService(index, 'unitPrice', num.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'));
                             }}
                             onKeyDown={handleEnterKey}
-                            className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                            className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
                           >
                             {service.unitPrice}
                           </span>
@@ -1360,7 +1363,7 @@ export default function PreviewPage() {
                                       if (!isNaN(parsed)) updateTierPrice(index, tierIndex, parsed);
                                     }}
                                     onKeyDown={handleEnterKey}
-                                    className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                                    className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
                                   >
                                     {priceMatch[2]}
                                   </span>
@@ -1379,9 +1382,6 @@ export default function PreviewPage() {
                 )}
               </tbody>
             </table>
-            <div className="text-[8.5pt] text-gray-600 italic mt-2">
-              💡 Klicken Sie auf Mengen, Namen, Beschreibungen oder Preise, um sie zu bearbeiten
-            </div>
           </div>
 
           {/* Footer */}
@@ -1390,7 +1390,9 @@ export default function PreviewPage() {
 
         {/* Page 3: Perspective Images (if any) */}
         {proposalData.images && proposalData.images.length > 0 && (
-          <div className="w-full min-h-[1122px] bg-white shadow-lg border border-gray-300 p-24 mb-10 flex flex-col relative">
+          <>
+          <SheetLabel title="Empfohlene Perspektiven" />
+          <div className="w-full min-h-[1122px] bg-white border border-gray-300 shadow-[0_1px_3px_rgba(15,23,42,0.08),0_12px_28px_-12px_rgba(15,23,42,0.18)] rounded-[3px] p-24 mb-12 flex flex-col relative">
             <div className="flex-1 pb-24">
               <div className="font-bold mb-2 text-[11pt] text-gray-900">Empfohlene Perspektiven Außen</div>
               {proposalData.images.map((image: any, index: number) => (
@@ -1421,10 +1423,12 @@ export default function PreviewPage() {
             {/* Footer */}
             <PageFooter />
           </div>
+          </>
         )}
 
         {/* Page 4: Pricing Summary */}
-        <div className="w-full min-h-[1122px] bg-white shadow-lg border border-gray-300 p-24 mb-10 flex flex-col relative">
+        <SheetLabel title="Zusammenfassung & Konditionen" />
+        <div className="w-full min-h-[1122px] bg-white border border-gray-300 shadow-[0_1px_3px_rgba(15,23,42,0.08),0_12px_28px_-12px_rgba(15,23,42,0.18)] rounded-[3px] p-24 mb-12 flex flex-col relative">
           <div className="flex-1 pb-24">
             <div className="font-bold mb-2 text-[11pt] text-gray-900">Zusammenfassung:</div>
             
@@ -1442,7 +1446,7 @@ export default function PreviewPage() {
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.subtotalNet', e)}
                         onKeyDown={handleEnterKey}
-                        className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                        className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
                       >
                         {proposalData.pricing.subtotalNet}
                       </span> €
@@ -1451,7 +1455,7 @@ export default function PreviewPage() {
                 </tr>
                 
                 {hasDiscount && (
-                  <tr className="border border-gray-800 bg-yellow-50">
+                  <tr className="border border-gray-800 bg-[#F4F8FF]">
                     <td className="border border-gray-800 p-1.5 text-gray-900">
                       <strong>
                         Rabatt: <span
@@ -1462,7 +1466,7 @@ export default function PreviewPage() {
                             setDiscountDescription(newDesc);
                           }}
                           onKeyDown={handleEnterKey}
-                          className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                          className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
                         >
                           {discountDescription}
                         </span>
@@ -1478,7 +1482,7 @@ export default function PreviewPage() {
                             setDiscountValue(newValue);
                           }}
                           onKeyDown={handleEnterKey}
-                          className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                          className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
                         >
                           {discountValue}
                         </span>
@@ -1488,7 +1492,7 @@ export default function PreviewPage() {
                         </span>
                         <button
                           onClick={removeDiscount}
-                          className="ml-2 text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600"
+                          className="ml-2 text-[11px] font-semibold text-red-600 border border-red-300 px-2.5 py-0.5 rounded-full hover:bg-red-50 transition-colors [font-family:var(--font-manrope)]"
                         >
                           Entfernen
                         </button>
@@ -1509,7 +1513,7 @@ export default function PreviewPage() {
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.totalNetPrice', e)}
                         onKeyDown={handleEnterKey}
-                        className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                        className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
                       >
                         {proposalData.pricing.totalNetPrice}
                       </span> €
@@ -1529,7 +1533,7 @@ export default function PreviewPage() {
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.totalVat', e)}
                         onKeyDown={handleEnterKey}
-                        className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                        className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
                       >
                         {proposalData.pricing.totalVat}
                       </span> €
@@ -1549,7 +1553,7 @@ export default function PreviewPage() {
                         suppressContentEditableWarning
                         onBlur={(e) => handleEditableBlur('pricing.totalGrossPrice', e)}
                         onKeyDown={handleEnterKey}
-                        className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                        className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
                       >
                         {proposalData.pricing.totalGrossPrice}
                       </span> €
@@ -1562,7 +1566,7 @@ export default function PreviewPage() {
             {!hasDiscount && (
               <button
                 onClick={addDiscount}
-                className="mt-2.5 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 text-sm"
+                className="mt-3 text-[#2F6FED] border border-[#2F6FED]/40 px-4 py-1.5 rounded-full hover:bg-[#EDF3FF] text-[13px] font-semibold transition-colors [font-family:var(--font-manrope)]"
               >
                 + Rabatt hinzufügen
               </button>
@@ -1575,7 +1579,7 @@ export default function PreviewPage() {
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.validUntilText', e)}
                   onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                  className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
                 >
                   {proposalData.terms?.validUntilText || 'Dieses Angebot ist gültig bis:'}
                 </span>{' '}
@@ -1584,7 +1588,7 @@ export default function PreviewPage() {
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('projectInfo.offerValidUntil', e)}
                   onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                  className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
                 >
                   {formatDate(proposalData.projectInfo.offerValidUntil)}
                 </span>
@@ -1600,7 +1604,7 @@ export default function PreviewPage() {
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.deliveryMethod', e)}
                   onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                  className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
                 >
                   {proposalData.terms?.deliveryMethod || 'Digital via Email'}
                 </span>
@@ -1614,7 +1618,7 @@ export default function PreviewPage() {
                     handleEditableBlur('projectInfo.deliveryTime', e);
                   }}
                   onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                  className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
                 >
                   {proposalData.projectInfo.deliveryTime || '4-6'}
                 </span>
@@ -1624,7 +1628,7 @@ export default function PreviewPage() {
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.deliveryDaysText', e)}
                   onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                  className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
                 >
                   {proposalData.terms?.deliveryDaysText || (() => {
                     const netStr = proposalData.pricing?.totalNetPrice || '0';
@@ -1647,7 +1651,7 @@ export default function PreviewPage() {
                 suppressContentEditableWarning
                 onBlur={(e) => handleEditableBlur('terms.closingGreeting', e)}
                 onKeyDown={handleEnterKey}
-                className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
               >
                 {proposalData.terms?.closingGreeting || 'Mit freundlichen Grüßen'}
               </span>
@@ -1657,7 +1661,7 @@ export default function PreviewPage() {
                 suppressContentEditableWarning
                 onBlur={(e) => handleEditableBlur('signature.signatureName', e)}
                 onKeyDown={handleEnterKey}
-                className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-1 rounded"
+                className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-1 rounded"
               >
                 {proposalData.signature.signatureName}
               </span>
@@ -1672,7 +1676,7 @@ export default function PreviewPage() {
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.p_one', e)}
                   onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                  className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
                 >
                   {proposalData.terms?.p_one || italicData.p_one}
                 </span>
@@ -1684,7 +1688,7 @@ export default function PreviewPage() {
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.p_two', e)}
                   onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                  className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
                 >
                   {proposalData.terms?.p_two || italicData.p_two}
                 </span>
@@ -1697,7 +1701,7 @@ export default function PreviewPage() {
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.p_three', e)}
                   onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                  className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
                 >
                   {proposalData.terms?.p_three || italicData.p_three}
                 </span>
@@ -1710,7 +1714,7 @@ export default function PreviewPage() {
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.p_four', e)}
                   onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                  className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
                 >
                   {proposalData.terms?.p_four || italicData.p_four}
                 </span>
@@ -1722,7 +1726,7 @@ export default function PreviewPage() {
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.p_five', e)}
                   onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                  className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
                 >
                   {proposalData.terms?.p_five || italicData.p_five}
                 </span>
@@ -1734,7 +1738,7 @@ export default function PreviewPage() {
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.p_six', e)}
                   onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                  className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
                 >
                   {proposalData.terms?.p_six || italicData.p_six}
                 </span>
@@ -1746,7 +1750,7 @@ export default function PreviewPage() {
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.p_seven', e)}
                   onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                  className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
                 >
                   {proposalData.terms?.p_seven || italicData.p_seven}
                 </span>
@@ -1758,14 +1762,11 @@ export default function PreviewPage() {
                   suppressContentEditableWarning
                   onBlur={(e) => handleEditableBlur('terms.p_eight', e)}
                   onKeyDown={handleEnterKey}
-                  className="cursor-text hover:bg-yellow-50 focus:bg-yellow-100 focus:outline-2 focus:outline-blue-500 px-0.5 rounded"
+                  className="cursor-text transition-colors hover:bg-[#EDF3FF] hover:shadow-[inset_0_-1px_0_0_#9DB8E8] focus:bg-white focus:shadow-none focus:outline-2 focus:outline-[#2F6FED] px-0.5 rounded"
                 >
                   {proposalData.terms?.p_eight || italicData.p_eight}
                 </span>
               </p>
-            </div>
-            <div className="text-[8.5pt] text-gray-600 italic mt-4">
-              💡 Klicken Sie auf Preiswerte, um sie zu bearbeiten
             </div>
           </div>
 
@@ -1776,11 +1777,12 @@ export default function PreviewPage() {
 
       {/* Bullet Point Modal */}
       {showBulletModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-[#0E1218]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-[0_24px_60px_-12px_rgba(0,0,0,0.7)] max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col [font-family:var(--font-manrope)]">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-slate-800 to-slate-700">
-              <h3 className="text-xl font-semibold text-white">Aufzählungspunkte hinzufügen</h3>
+            <div className="px-6 pt-5 pb-4 border-b border-gray-200">
+              <div className="text-[10px] font-semibold tracking-[0.18em] text-gray-400 uppercase mb-0.5">Beschreibung</div>
+              <h3 className="text-lg font-bold text-gray-900">Aufzählungspunkte hinzufügen</h3>
             </div>
 
             {/* Modal Body */}
@@ -1795,9 +1797,9 @@ export default function PreviewPage() {
                   <li><code className="bg-gray-100 px-2 py-0.5 rounded">---</code> Unter-Unterpunkt (Ebene 2)</li>
                   <li><code className="bg-gray-100 px-2 py-0.5 rounded">----</code> Ebene 3 (max. Tiefe)</li>
                 </ul>
-                <div className="bg-blue-50 border border-blue-200 rounded p-3 text-sm">
-                  <p className="font-semibold text-blue-900 mb-1">Beispiel:</p>
-                  <pre className="text-blue-800 font-mono text-xs whitespace-pre-wrap">
+                <div className="bg-[#F4F8FF] border border-[#2F6FED]/20 rounded-lg p-3 text-sm">
+                  <p className="font-semibold text-[#1D4CB0] mb-1">Beispiel:</p>
+                  <pre className="text-[#2558C4] font-mono text-xs whitespace-pre-wrap">
 {`- Erster Hauptpunkt
 -- Unterpunkt
 --- Unter-Unterpunkt
@@ -1815,7 +1817,7 @@ export default function PreviewPage() {
                 className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none font-mono text-sm"
               />
               <p className="text-xs text-gray-500 mt-2">
-                💡 Tipp: Jede Zeile wird ein eigener Aufzählungspunkt. Verwenden Sie Striche, um die Verschachtelungsebene anzugeben.
+                Jede Zeile wird ein eigener Aufzählungspunkt. Striche bestimmen die Verschachtelungsebene.
               </p>
             </div>
 
@@ -1827,13 +1829,13 @@ export default function PreviewPage() {
                   setBulletModalServiceIndex(null);
                   setBulletInputText('');
                 }}
-                className="px-5 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                className="px-5 py-2 text-gray-600 border border-gray-300 rounded-full hover:bg-gray-100 transition-colors text-sm font-semibold"
               >
                 Abbrechen
               </button>
               <button
                 onClick={handleAddBullets}
-                className="px-5 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                className="px-5 py-2 bg-[#2F6FED] text-white rounded-full hover:bg-[#2558C4] transition-colors text-sm font-bold"
               >
                 Hinzufügen
               </button>
@@ -1841,6 +1843,17 @@ export default function PreviewPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function SheetLabel({ title }: { title: string }) {
+  return (
+    <div className="flex items-center gap-3 mb-3 px-1 [font-family:var(--font-manrope)]" aria-hidden>
+      <span className="text-[10px] font-semibold tracking-[0.22em] uppercase text-gray-500 whitespace-nowrap">
+        {title}
+      </span>
+      <span className="flex-1 h-px bg-gray-300" />
     </div>
   );
 }

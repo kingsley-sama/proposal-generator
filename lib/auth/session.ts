@@ -1,6 +1,11 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
+if (!process.env.AUTH_SECRET) {
+  throw new Error(
+    'AUTH_SECRET is not set. Add it to .env (e.g. `openssl rand -base64 32`).'
+  );
+}
 const key = new TextEncoder().encode(process.env.AUTH_SECRET);
 
 const SESSION_COOKIE = 'session';
