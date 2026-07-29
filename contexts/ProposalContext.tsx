@@ -15,6 +15,9 @@ export interface ClientInfo {
   postalCode: string;
   city: string;
   country: string;
+  /** Setup form — client's contact person */
+  contactPersonName: string;
+  contactPersonEmail: string;
 }
 
 export interface ProjectInfo {
@@ -22,6 +25,11 @@ export interface ProjectInfo {
   projectName: string;
   projectType: string;
   customProjectType: string;
+  /** Setup form — property being visualized */
+  propertyType: string;
+  /** Setup form — responsible project manager */
+  projectManagerName: string;
+  projectManagerType: string;
   deliveryTime: string;
   deliveryDaysMin: number;
   deliveryDaysMax: number;
@@ -30,6 +38,21 @@ export interface ProjectInfo {
   MM: string;
   DD: string;
   year: string;
+}
+
+export interface PartialInvoiceInfo {
+  /** True once the user has explicitly answered the Yes/No toggle. */
+  answered: boolean;
+  enabled: boolean;
+  split: string;
+  note: string;
+}
+
+export interface OfferMeta {
+  salespersonName: string;
+  partialInvoice: PartialInvoiceInfo;
+  /** Set to true once the Setup form has passed "Mark as Ready". */
+  isReady: boolean;
 }
 
 export interface ServiceData {
@@ -79,6 +102,7 @@ export interface SignatureData {
 export interface ProposalState {
   clientInfo: ClientInfo;
   projectInfo: ProjectInfo;
+  offerMeta: OfferMeta;
   services: ServiceData[];
   images: ImageData[];
   pricing: PricingData;
@@ -96,7 +120,15 @@ interface ProposalContextType {
   
   // Project Info
   updateProjectInfo: (updates: Partial<ProjectInfo>) => void;
-  
+
+  // Offer meta (setup form: salesperson, partial invoice, ready flag).
+  // partialInvoice accepts a partial patch that is shallow-merged.
+  updateOfferMeta: (
+    updates: Partial<Omit<OfferMeta, 'partialInvoice'>> & {
+      partialInvoice?: Partial<PartialInvoiceInfo>;
+    }
+  ) => void;
+
   // Services
   addService: (serviceId: string) => void;
   removeService: (serviceId: string) => void;
@@ -131,6 +163,8 @@ interface ProposalContextType {
   // Validation
   isValid: () => boolean;
   getValidationErrors: () => string[];
+  /** Field-level validation for the Setup form (Step 1). Keyed by field id. */
+  getSetupErrors: () => Record<string, string>;
   
   // Auto-save status
   autoSaveStatus: 'idle' | 'saving' | 'saved';
@@ -173,13 +207,18 @@ const createInitialState = (): ProposalState => ({
     street: '',
     postalCode: '',
     city: '',
-    country: 'Deutschland'
+    country: 'Deutschland',
+    contactPersonName: '',
+    contactPersonEmail: ''
   },
   projectInfo: {
     projectNumber: '',
     projectName: '',
     projectType: '',
     customProjectType: '',
+    propertyType: '',
+    projectManagerName: '',
+    projectManagerType: '',
     deliveryTime: 'Calculated automatically',
     deliveryDaysMin: 0,
     deliveryDaysMax: 0,
@@ -188,6 +227,11 @@ const createInitialState = (): ProposalState => ({
     MM: String(new Date().getMonth() + 1).padStart(2, '0'),
     DD: String(new Date().getDate()).padStart(2, '0'),
     year: String(new Date().getFullYear())
+  },
+  offerMeta: {
+    salespersonName: '',
+    partialInvoice: { answered: false, enabled: false, split: '', note: '' },
+    isReady: false
   },
   services: [],
   images: [],
@@ -263,6 +307,24 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
     setState(prev => ({
       ...prev,
       projectInfo: { ...prev.projectInfo, ...updates }
+    }));
+  }, []);
+
+  // Offer meta (salesperson, partial invoice, ready flag)
+  const updateOfferMeta = useCallback((updates: Partial<Omit<OfferMeta, 'partialInvoice'>> & {
+    partialInvoice?: Partial<PartialInvoiceInfo>;
+  }) => {
+    setState(prev => ({
+      ...prev,
+      offerMeta: {
+        ...prev.offerMeta,
+        ...updates,
+        // Merge nested partialInvoice so callers can patch a single field.
+        partialInvoice: {
+          ...prev.offerMeta.partialInvoice,
+          ...(updates.partialInvoice || {})
+        }
+      }
     }));
   }, []);
 
@@ -507,8 +569,25 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
         data.pricing.discount = toCanonicalDiscount(data.pricing.discount);
       }
       console.log('📂 Loading saved proposal data...');
-      
-      setState(data);
+
+      // Merge over a fresh initial state so saves written before the Setup-form
+      // fields existed still get well-formed clientInfo/projectInfo/offerMeta.
+      const base = createInitialState();
+      const merged: ProposalState = {
+        ...base,
+        ...data,
+        clientInfo: { ...base.clientInfo, ...(data.clientInfo || {}) },
+        projectInfo: { ...base.projectInfo, ...(data.projectInfo || {}) },
+        offerMeta: {
+          ...base.offerMeta,
+          ...(data.offerMeta || {}),
+          partialInvoice: {
+            ...base.offerMeta.partialInvoice,
+            ...(data.offerMeta?.partialInvoice || {})
+          }
+        }
+      };
+      setState(merged);
       // Also restore rawProposalData from sessionStorage if available
       const rawData = sessionStorage.getItem('rawProposalData');
       if (rawData) {
@@ -559,10 +638,48 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
     return errors;
   }, [state]);
 
+  // Field-level validation for the Setup form (Step 1). Returns a map of
+  // fieldId → message for every required field that is not yet filled.
+  const getSetupErrors = useCallback((): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    const { clientInfo, projectInfo, offerMeta } = state;
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!clientInfo.clientNumber?.trim()) errors.clientNumber = 'Kunden-ID ist erforderlich';
+    if (!projectInfo.projectNumber?.trim()) errors.projectNumber = 'Projekt-ID ist erforderlich';
+    if (!projectInfo.projectName?.trim()) errors.projectName = 'Projektname ist erforderlich';
+    if (!projectInfo.projectManagerName?.trim())
+      errors.projectManagerName = 'Name des Projektleiters ist erforderlich';
+    if (!projectInfo.projectManagerType?.trim())
+      errors.projectManagerType = 'Art des Projektleiters ist erforderlich';
+    if (!projectInfo.projectType?.trim()) errors.projectType = 'Projektart ist erforderlich';
+    if (projectInfo.projectType === 'Custom' && !projectInfo.customProjectType?.trim())
+      errors.customProjectType = 'Bitte die Projektart angeben';
+    if (!projectInfo.propertyType?.trim()) errors.propertyType = 'Immobilientyp ist erforderlich';
+    if (!clientInfo.contactPersonName?.trim())
+      errors.contactPersonName = 'Ansprechpartner ist erforderlich';
+    if (!clientInfo.contactPersonEmail?.trim()) {
+      errors.contactPersonEmail = 'E-Mail des Ansprechpartners ist erforderlich';
+    } else if (!EMAIL_RE.test(clientInfo.contactPersonEmail.trim())) {
+      errors.contactPersonEmail = 'Bitte eine gültige E-Mail-Adresse eingeben';
+    }
+    if (!offerMeta.salespersonName?.trim())
+      errors.salespersonName = 'Vertriebsmitarbeiter ist erforderlich';
+    if (!projectInfo.date?.trim()) errors.date = 'Datum ist erforderlich';
+    if (!offerMeta.partialInvoice.answered) {
+      errors.partialInvoice = 'Bitte Teilrechnung mit Ja oder Nein beantworten';
+    } else if (offerMeta.partialInvoice.enabled && !offerMeta.partialInvoice.split?.trim()) {
+      errors.partialInvoice = 'Bitte die Aufteilung der Teilrechnung angeben';
+    }
+
+    return errors;
+  }, [state]);
+
   const value: ProposalContextType = {
     state,
     updateClientInfo,
     updateProjectInfo,
+    updateOfferMeta,
     addService,
     removeService,
     updateService,
@@ -584,6 +701,7 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
     clearStorage,
     isValid,
     getValidationErrors,
+    getSetupErrors,
     autoSaveStatus
   };
 

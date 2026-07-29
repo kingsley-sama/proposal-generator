@@ -870,7 +870,7 @@ export default function ProposalFormPage() {
       proposal.setRawProposalData(data);
       // Also keep localStorage as fallback
       localStorage.setItem('proposalPreviewData', JSON.stringify(data));
-      router.push('/preview');
+      router.push('/edit');
     } catch (error) {
       console.error('Error storing preview data:', error);
       showNotification('Fehler bei Vorschau-Vorbereitung. Bitte erneut versuchen.', 'error');
