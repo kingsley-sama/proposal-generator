@@ -28,10 +28,23 @@ const PROPERTY_TYPES = [
   'Sonstiges',
 ];
 
+// The three lists below mirror the enum domains of public.projects
+// (pm_type, project_type_values, construction_type_values) — the values are
+// written to the database verbatim, only the labels are localised.
 const PM_TYPES = [
-  { value: 'internal', label: 'Intern' },
-  { value: 'external', label: 'Extern' },
-  { value: 'client', label: 'Kundenseitig' },
+  { value: 'general', label: 'Allgemein' },
+  { value: 'dedicated', label: 'Dediziert' },
+];
+
+const PROJECT_CATEGORIES = [
+  { value: 'Standard', label: 'Standard' },
+  { value: 'Flat rate', label: 'Pauschale (Flat rate)' },
+  { value: 'Digital Makler', label: 'Digital Makler' },
+];
+
+const CONSTRUCTION_TYPES = [
+  { value: 'New', label: 'Neubau' },
+  { value: 'Existing', label: 'Bestand' },
 ];
 
 const INVOICE_SPLITS = ['50 % / 50 %', '30 % / 70 %', '40 % / 60 %', 'Andere'];
@@ -58,6 +71,7 @@ export default function SetupForm() {
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [lookupState, setLookupState] = useState<'idle' | 'loading'>('idle');
+  const [saving, setSaving] = useState(false);
   // Collapsed once the proposal is ready, to keep the document in focus.
   const [collapsed, setCollapsed] = useState(isReady);
 
@@ -130,7 +144,10 @@ export default function SetupForm() {
     }
   }, [clientInfo, updateClientInfo, showNotification]);
 
-  const handleMarkAsReady = () => {
+  // Marking ready is what creates the project in the database, so the flag is
+  // only set once that write succeeds — otherwise the user could carry on
+  // believing the project exists when it does not.
+  const handleMarkAsReady = async () => {
     setSubmitted(true);
     const found = getSetupErrors();
     setErrors(found);
@@ -142,10 +159,42 @@ export default function SetupForm() {
       el?.focus?.();
       return;
     }
-    updateOfferMeta({ isReady: true });
-    saveToStorage();
-    setCollapsed(true);
-    showNotification('Angebot als bereit markiert', 'success');
+
+    setSaving(true);
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientInfo, projectInfo, offerMeta }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json?.success) {
+        throw new Error(json?.error || 'Projekt konnte nicht gespeichert werden');
+      }
+
+      updateOfferMeta({ isReady: true });
+      saveToStorage();
+      setCollapsed(true);
+      showNotification(
+        json.created
+          ? `Angebot als bereit markiert — Projekt ${projectInfo.projectNumber} angelegt`
+          : `Angebot als bereit markiert — Projekt ${projectInfo.projectNumber} aktualisiert`,
+        'success'
+      );
+      if (!json.emailMatched) {
+        showNotification(
+          'Hinweis: Die E-Mail des Ansprechpartners ist keinem Kontakt zugeordnet — das Projekt wurde ohne Kontaktverknüpfung angelegt.',
+          'info'
+        );
+      }
+    } catch (e) {
+      showNotification(
+        `Projekt konnte nicht angelegt werden: ${e instanceof Error ? e.message : String(e)}`,
+        'error'
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const errorList = Object.entries(errors);
@@ -353,6 +402,71 @@ export default function SetupForm() {
                 />
               </Field>
 
+              <Field label="Projektkategorie" required error={errors.projectCategory}>
+                <select
+                  ref={registerRef('projectCategory') as any}
+                  value={projectInfo.projectCategory}
+                  onChange={(e) => {
+                    updateProjectInfo({ projectCategory: e.target.value });
+                    clearError('projectCategory');
+                  }}
+                  onBlur={revalidate}
+                  className={inputCls(errors.projectCategory)}
+                >
+                  <option value="">Bitte wählen…</option>
+                  {PROJECT_CATEGORIES.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Bauart" required error={errors.constructionType}>
+                <select
+                  ref={registerRef('constructionType') as any}
+                  value={projectInfo.constructionType}
+                  onChange={(e) => {
+                    updateProjectInfo({ constructionType: e.target.value });
+                    clearError('constructionType');
+                  }}
+                  onBlur={revalidate}
+                  className={inputCls(errors.constructionType)}
+                >
+                  <option value="">Bitte wählen…</option>
+                  {CONSTRUCTION_TYPES.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Fragebogen erhalten" required error={errors.questionnaireReceived}>
+                <div
+                  ref={registerRef('questionnaireReceived') as any}
+                  tabIndex={-1}
+                  className="flex flex-wrap items-center gap-2"
+                >
+                  <Toggle
+                    active={projectInfo.questionnaireReceived === 'Yes'}
+                    onClick={() => {
+                      updateProjectInfo({ questionnaireReceived: 'Yes' });
+                      clearError('questionnaireReceived');
+                    }}
+                    label="Ja"
+                  />
+                  <Toggle
+                    active={projectInfo.questionnaireReceived === 'No'}
+                    onClick={() => {
+                      updateProjectInfo({ questionnaireReceived: 'No' });
+                      clearError('questionnaireReceived');
+                    }}
+                    label="Nein"
+                  />
+                </div>
+              </Field>
+
               <Field label="Art des Projektleiters" required error={errors.projectManagerType}>
                 <select
                   ref={registerRef('projectManagerType') as any}
@@ -411,6 +525,27 @@ export default function SetupForm() {
                   onBlur={revalidate}
                   className={inputCls(errors.date)}
                 />
+              </Field>
+
+              <Field label="Anzahlung" required error={errors.deposit}>
+                <div ref={registerRef('deposit') as any} tabIndex={-1} className="flex flex-wrap items-center gap-2">
+                  <Toggle
+                    active={offerMeta.deposit === 'Yes'}
+                    onClick={() => {
+                      updateOfferMeta({ deposit: 'Yes' });
+                      clearError('deposit');
+                    }}
+                    label="Ja"
+                  />
+                  <Toggle
+                    active={offerMeta.deposit === 'No'}
+                    onClick={() => {
+                      updateOfferMeta({ deposit: 'No' });
+                      clearError('deposit');
+                    }}
+                    label="Nein"
+                  />
+                </div>
               </Field>
 
               <Field label="Teilrechnung" required error={errors.partialInvoice} wide>
@@ -494,11 +629,16 @@ export default function SetupForm() {
           <div className="mt-5 flex items-center justify-end gap-3">
             <button
               type="submit"
-              className={`rounded-full px-6 py-2.5 text-sm font-semibold text-white ${
+              disabled={saving}
+              className={`rounded-full px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-60 ${
                 isReady ? 'bg-[#00214D] hover:bg-[#01183a]' : 'bg-[#AF2C32] hover:bg-[#962228]'
               }`}
             >
-              {isReady ? 'Angaben aktualisieren' : 'Als bereit markieren'}
+              {saving
+                ? 'Projekt wird gespeichert…'
+                : isReady
+                  ? 'Angaben aktualisieren'
+                  : 'Als bereit markieren'}
             </button>
           </div>
         </form>

@@ -29,7 +29,14 @@ export interface ProjectInfo {
   propertyType: string;
   /** Setup form — responsible project manager */
   projectManagerName: string;
+  /** DB enum public.pm_type: 'general' | 'dedicated' */
   projectManagerType: string;
+  /** DB enum public.project_type_values: 'Digital Makler' | 'Flat rate' | 'Standard' */
+  projectCategory: string;
+  /** DB enum public.construction_type_values: 'New' | 'Existing' */
+  constructionType: string;
+  /** DB enum public.yes_no_values: 'Yes' | 'No' */
+  questionnaireReceived: string;
   deliveryTime: string;
   deliveryDaysMin: number;
   deliveryDaysMax: number;
@@ -51,6 +58,8 @@ export interface PartialInvoiceInfo {
 export interface OfferMeta {
   salespersonName: string;
   partialInvoice: PartialInvoiceInfo;
+  /** DB enum public.yes_no_values: 'Yes' | 'No' */
+  deposit: string;
   /** Set to true once the Setup form has passed "Mark as Ready". */
   isReady: boolean;
 }
@@ -219,6 +228,9 @@ const createInitialState = (): ProposalState => ({
     propertyType: '',
     projectManagerName: '',
     projectManagerType: '',
+    projectCategory: '',
+    constructionType: '',
+    questionnaireReceived: '',
     deliveryTime: 'Calculated automatically',
     deliveryDaysMin: 0,
     deliveryDaysMax: 0,
@@ -231,6 +243,7 @@ const createInitialState = (): ProposalState => ({
   offerMeta: {
     salespersonName: '',
     partialInvoice: { answered: false, enabled: false, split: '', note: '' },
+    deposit: '',
     isReady: false
   },
   services: [],
@@ -656,6 +669,12 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
     if (projectInfo.projectType === 'Custom' && !projectInfo.customProjectType?.trim())
       errors.customProjectType = 'Bitte die Projektart angeben';
     if (!projectInfo.propertyType?.trim()) errors.propertyType = 'Immobilientyp ist erforderlich';
+    if (!projectInfo.projectCategory?.trim())
+      errors.projectCategory = 'Projektkategorie ist erforderlich';
+    if (!projectInfo.constructionType?.trim())
+      errors.constructionType = 'Bauart (Neubau/Bestand) ist erforderlich';
+    if (!projectInfo.questionnaireReceived?.trim())
+      errors.questionnaireReceived = 'Bitte angeben, ob der Fragebogen vorliegt';
     if (!clientInfo.contactPersonName?.trim())
       errors.contactPersonName = 'Ansprechpartner ist erforderlich';
     if (!clientInfo.contactPersonEmail?.trim()) {
@@ -671,6 +690,7 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
     } else if (offerMeta.partialInvoice.enabled && !offerMeta.partialInvoice.split?.trim()) {
       errors.partialInvoice = 'Bitte die Aufteilung der Teilrechnung angeben';
     }
+    if (!offerMeta.deposit?.trim()) errors.deposit = 'Bitte Anzahlung mit Ja oder Nein beantworten';
 
     return errors;
   }, [state]);
