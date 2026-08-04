@@ -203,8 +203,11 @@ export default function PreviewPage() {
   const [undo, setUndo] = useState<{ service: any; index: number } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Whether the Setup form has been completed. Generation is gated on this.
+  // Whether the Setup form has been completed. It is only shown (and therefore
+  // only gates generation) when editing an already-saved proposal; a new
+  // proposal generates straight from the review view, as it did before.
   const isReady = proposal.state.offerMeta?.isReady ?? false;
+  const canGenerate = !isExistingProposal || isReady;
 
   // Refs for summary spans — used by recomputePricingLive to update totals
   // directly in the DOM while the user is typing, so we don't trigger a full
@@ -407,9 +410,12 @@ export default function PreviewPage() {
   // this the two diverge and the Setup values never reach the page or the
   // generated .docx. Only non-empty context values are copied, so a blank
   // context never wipes data that was loaded from storage or typed inline.
+  // Only applies while editing a saved proposal — that is the only mode that
+  // shows the form. A new proposal renders purely from the data the generator
+  // handed over, exactly as the preview did before the form existed.
   const setupSnapshot = JSON.stringify(setupFieldsFrom(proposal.state));
   useEffect(() => {
-    if (!proposalData) return;
+    if (!proposalData || !isExistingProposal) return;
     const setup = JSON.parse(setupSnapshot) as ReturnType<typeof setupFieldsFrom>;
 
     const merge = (target: any, source: Record<string, any>) => {
@@ -438,7 +444,7 @@ export default function PreviewPage() {
       services: merged.services,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [setupSnapshot, proposalData]);
+  }, [setupSnapshot, proposalData, isExistingProposal]);
 
   // Enrich a single service object with description defaults, pricing tiers,
   // sub_name and link — the same treatment loaded services get, so a product
@@ -645,10 +651,10 @@ export default function PreviewPage() {
         data = JSON.parse(dataStr);
       } else {
         // Nothing stored yet (a brand-new proposal). Start from an empty
-        // document instead of navigating away: the Setup form sits at the top
-        // of this page and the services table has its own empty state, so the
-        // user can build the proposal from here. Redirecting to /setup would
-        // bounce straight back, because /setup redirects to /edit.
+        // document instead of navigating away: the services table has its own
+        // empty state, so the user can build the proposal from here.
+        // Redirecting to /setup would bounce straight back, because /setup
+        // redirects to /edit.
         data = emptyProposalData();
       }
     }
@@ -1268,15 +1274,19 @@ export default function PreviewPage() {
     setIsGenerating(true);
 
     try {
-      // Merge in the Setup form's fields — they live in ProposalContext, not in
-      // the rendered document, and without this they never reach generation.
+      // While editing a saved proposal, merge in the Setup form's fields — they
+      // live in ProposalContext, not in the rendered document, and without this
+      // they never reach generation. A new proposal is generated from the
+      // document alone, as it was before the form existed.
       const setup = setupFieldsFromContext();
-      const payload = {
-        ...proposalData,
-        clientInfo: { ...proposalData.clientInfo, ...pickFilled(setup.clientInfo) },
-        projectInfo: { ...proposalData.projectInfo, ...pickFilled(setup.projectInfo) },
-        offerMeta: proposal.state.offerMeta,
-      };
+      const payload = isExistingProposal
+        ? {
+            ...proposalData,
+            clientInfo: { ...proposalData.clientInfo, ...pickFilled(setup.clientInfo) },
+            projectInfo: { ...proposalData.projectInfo, ...pickFilled(setup.projectInfo) },
+            offerMeta: proposal.state.offerMeta,
+          }
+        : { ...proposalData };
 
       const response = await fetch('/api/generate-proposal', {
         method: 'POST',
@@ -1405,15 +1415,19 @@ export default function PreviewPage() {
       {/* Editor Toolbar */}
       <div className="fixed top-0 left-0 right-0 bg-gradient-to-r from-slate-800 to-slate-700 px-6 py-3.5 flex justify-between items-center shadow-lg z-50 gap-4">
         <div className="flex items-center gap-4 min-w-0">
-          <button
-            onClick={() =>
-              document.getElementById('extra-info-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            }
-            className="text-white/80 hover:text-white text-sm font-semibold whitespace-nowrap"
-          >
-            ↑ Zusatzinfos
-          </button>
-          <div className="h-5 w-px bg-white/20" />
+          {isExistingProposal && (
+            <>
+              <button
+                onClick={() =>
+                  document.getElementById('extra-info-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                }
+                className="text-white/80 hover:text-white text-sm font-semibold whitespace-nowrap"
+              >
+                ↑ Zusatzinfos
+              </button>
+              <div className="h-5 w-px bg-white/20" />
+            </>
+          )}
           <div className="min-w-0">
             <div className="text-white text-sm font-semibold truncate">
               Angebot {offerNumber}
@@ -1434,8 +1448,8 @@ export default function PreviewPage() {
           </button>
           <button
             onClick={handleGenerateProposal}
-            disabled={isGenerating || !isReady}
-            title={!isReady ? 'Bitte zuerst die Einrichtung abschließen' : undefined}
+            disabled={isGenerating || !canGenerate}
+            title={!canGenerate ? 'Bitte zuerst die Einrichtung abschließen' : undefined}
             className="px-6 py-2.5 bg-green-500 text-white rounded-md text-sm font-semibold hover:bg-green-600 hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:bg-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-none whitespace-nowrap"
           >
             {isGenerating ? '⏳ Wird erstellt...' : '📄 DOCX erstellen'}
@@ -1445,8 +1459,9 @@ export default function PreviewPage() {
 
       {/* Content Area */}
       <div className="pt-24 pb-16 px-0 w-[210mm] max-w-full">
-        {/* Extra-information form, above the document (edit page only). */}
-        <SetupForm />
+        {/* Extra-information form. Only shown when an already-saved proposal is
+            being edited; a brand-new proposal goes straight to the document. */}
+        {isExistingProposal && <SetupForm />}
         <div className="text-xs text-gray-600 italic mb-4 text-center">
           💡 Klicken Sie auf einen Text, um ihn zu bearbeiten. Änderungen werden automatisch gespeichert.
         </div>
