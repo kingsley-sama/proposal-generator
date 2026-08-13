@@ -1,40 +1,28 @@
 import { NextResponse } from 'next/server';
 // @ts-ignore
 import { resolveEmailId, upsertProject } from '@/lib/utils';
+import {
+  CONSTRUCTION_TYPES,
+  FIRST_NEXT_PROJECT,
+  PM_TYPES,
+  PROJECT_TYPES,
+  PROPERTY_TYPES,
+  YES_NO,
+  type ProjectStatus,
+} from '@/lib/project-enums';
 
 export const runtime = 'nodejs';
 
-// Enum domains of public.projects. Kept here so an unexpected value fails with
-// a readable message instead of a raw Postgres "invalid input value" error.
-const PROJECT_TYPES = ['Digital Makler', 'Flat rate', 'Standard'];
-const CONSTRUCTION_TYPES = ['Existing', 'New'];
-const PROPERTY_TYPES = ['Commercial', 'Residential'];
-const YES_NO = ['Yes', 'No'];
-const PM_TYPES = ['general', 'dedicated'];
-const DEFAULT_PROJECT_STATUS = 'Offen';
+// Validated here against the enum domains of public.projects so an unexpected
+// value fails with a readable message instead of a raw Postgres
+// "invalid input value" error.
+const DEFAULT_PROJECT_STATUS: ProjectStatus = 'Offen';
 
-/**
- * The Setup form collects a granular German property type; `projects`
- * only distinguishes commercial from residential.
- */
-const PROPERTY_TYPE_MAP: Record<string, string> = {
-  einfamilienhaus: 'Residential',
-  'doppelhaushälfte': 'Residential',
-  mehrfamilienhaus: 'Residential',
-  wohnanlage: 'Residential',
-  gewerbe: 'Commercial',
-};
-
-const toPropertyType = (value?: string): string | null => {
-  if (!value) return null;
-  const trimmed = value.trim();
-  if (PROPERTY_TYPES.includes(trimmed)) return trimmed;
-  // "Grundstück" and "Sonstiges" carry no commercial/residential signal, so
-  // they are left empty rather than guessed.
-  return PROPERTY_TYPE_MAP[trimmed.toLowerCase()] || null;
-};
-
-const oneOf = (value: string | undefined, allowed: string[], field: string): string | null => {
+const oneOf = (
+  value: string | undefined,
+  allowed: readonly string[],
+  field: string
+): string | null => {
   const trimmed = (value || '').trim();
   if (!trimmed) return null;
   if (!allowed.includes(trimmed)) {
@@ -43,14 +31,29 @@ const oneOf = (value: string | undefined, allowed: string[], field: string): str
   return trimmed;
 };
 
-/** Flatten the partial-invoice answer into the single text column. */
+/**
+ * `projects.partial_invoice` holds the partial invoice's *number* once one is
+ * issued (e.g. "RE-2026-05-1801"), or the literal 'no' when the project has no
+ * partial invoice — it is not a free-text description of the arrangement.
+ *
+ * So a "Nein" answer writes 'no', and a "Ja" answer writes nothing: the number
+ * is not known yet and is filled in later by the invoicing workflow. Returning
+ * null also means upsertProject drops the key, so re-marking a proposal ready
+ * can never overwrite a number that has since been issued.
+ */
 const toPartialInvoice = (partialInvoice: any): string | null => {
   if (!partialInvoice?.answered) return null;
-  if (!partialInvoice.enabled) return 'Nein';
-  const split = (partialInvoice.split || '').trim();
-  const note = (partialInvoice.note || '').trim();
-  if (!split) return note ? `Ja — ${note}` : 'Ja';
-  return note ? `${split} — ${note}` : split;
+  return partialInvoice.enabled ? null : 'no';
+};
+
+/** ISO date (YYYY-MM-DD) or null — anything else is rejected by Postgres. */
+const toDate = (value: string | undefined, field: string): string | null => {
+  const trimmed = (value || '').trim();
+  if (!trimmed) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    throw new Error(`${field} must be an ISO date (YYYY-MM-DD), got "${trimmed}"`);
+  }
+  return trimmed;
 };
 
 export async function POST(request: Request) {
@@ -75,6 +78,14 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+    // NOT NULL with a CURRENT_DATE default — required explicitly so a missing
+    // value surfaces here instead of silently being recorded as today.
+    if (!(projectInfo.orderConfirmationDate || '').trim()) {
+      return NextResponse.json(
+        { success: false, error: 'Auftragsbestätigungsdatum ist erforderlich' },
+        { status: 400 }
+      );
+    }
 
     const rawClientId = (clientInfo.clientNumber ?? '').toString().trim();
     const clientId = /^\d+$/.test(rawClientId) ? parseInt(rawClientId, 10) : null;
@@ -91,9 +102,16 @@ export async function POST(request: Request) {
       pm_type: oneOf(projectInfo.projectManagerType, PM_TYPES, 'pm_type'),
       project_type: oneOf(projectInfo.projectCategory, PROJECT_TYPES, 'project_type'),
       construction_type: oneOf(projectInfo.constructionType, CONSTRUCTION_TYPES, 'construction_type'),
-      property_type: toPropertyType(projectInfo.propertyType),
+      property_type: oneOf(projectInfo.propertyType, PROPERTY_TYPES, 'property_type'),
       questionnaire_received: oneOf(projectInfo.questionnaireReceived, YES_NO, 'questionnaire_received'),
+      first_or_next_project: oneOf(
+        projectInfo.firstOrNextProject,
+        FIRST_NEXT_PROJECT,
+        'first_or_next_project'
+      ),
       deposit: oneOf(offerMeta.deposit, YES_NO, 'deposit'),
+      order_confirmation_date: toDate(projectInfo.orderConfirmationDate, 'order_confirmation_date'),
+      delivery_completion_date: toDate(projectInfo.deliveryCompletionDate, 'delivery_completion_date'),
       sales_person: (offerMeta.salespersonName || '').trim() || null,
       client_id: clientId,
       email_id: emailId,

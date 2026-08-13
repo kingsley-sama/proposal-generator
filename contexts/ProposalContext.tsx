@@ -23,9 +23,15 @@ export interface ClientInfo {
 export interface ProjectInfo {
   projectNumber: string;
   projectName: string;
+  /**
+   * Building type of the visualised property (Einfamilienhaus, Hotel, …) —
+   * NOT a database enum. Drives the exterior-visualisation price matrices and
+   * is stored on the proposal as `proposals.project_type`. The `projects` row's
+   * own `project_type` enum comes from `projectCategory` instead.
+   */
   projectType: string;
   customProjectType: string;
-  /** Setup form — property being visualized */
+  /** DB enum public.property_type_values: 'Commercial' | 'Residential' */
   propertyType: string;
   /** Setup form — responsible project manager */
   projectManagerName: string;
@@ -37,6 +43,12 @@ export interface ProjectInfo {
   constructionType: string;
   /** DB enum public.yes_no_values: 'Yes' | 'No' */
   questionnaireReceived: string;
+  /** DB enum public.first_next_project: 'First' | 'Next' */
+  firstOrNextProject: string;
+  /** ISO date → projects.order_confirmation_date (NOT NULL in the DB) */
+  orderConfirmationDate: string;
+  /** ISO date → projects.delivery_completion_date (optional) */
+  deliveryCompletionDate: string;
   deliveryTime: string;
   deliveryDaysMin: number;
   deliveryDaysMax: number;
@@ -231,6 +243,9 @@ const createInitialState = (): ProposalState => ({
     projectCategory: '',
     constructionType: '',
     questionnaireReceived: '',
+    firstOrNextProject: '',
+    orderConfirmationDate: new Date().toISOString().split('T')[0],
+    deliveryCompletionDate: '',
     deliveryTime: 'Calculated automatically',
     deliveryDaysMin: 0,
     deliveryDaysMax: 0,
@@ -665,16 +680,27 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
       errors.projectManagerName = 'Name des Projektleiters ist erforderlich';
     if (!projectInfo.projectManagerType?.trim())
       errors.projectManagerType = 'Art des Projektleiters ist erforderlich';
-    if (!projectInfo.projectType?.trim()) errors.projectType = 'Projektart ist erforderlich';
+    if (!projectInfo.projectType?.trim()) errors.projectType = 'Gebäudetyp ist erforderlich';
     if (projectInfo.projectType === 'Custom' && !projectInfo.customProjectType?.trim())
-      errors.customProjectType = 'Bitte die Projektart angeben';
+      errors.customProjectType = 'Bitte den Gebäudetyp angeben';
     if (!projectInfo.propertyType?.trim()) errors.propertyType = 'Immobilientyp ist erforderlich';
-    if (!projectInfo.projectCategory?.trim())
-      errors.projectCategory = 'Projektkategorie ist erforderlich';
+    if (!projectInfo.projectCategory?.trim()) errors.projectCategory = 'Projektart ist erforderlich';
     if (!projectInfo.constructionType?.trim())
       errors.constructionType = 'Bauart (Neubau/Bestand) ist erforderlich';
     if (!projectInfo.questionnaireReceived?.trim())
       errors.questionnaireReceived = 'Bitte angeben, ob der Fragebogen vorliegt';
+    if (!projectInfo.firstOrNextProject?.trim())
+      errors.firstOrNextProject = 'Bitte Erst- oder Folgeprojekt angeben';
+    // NOT NULL in the DB — never let it fall through to the CURRENT_DATE default.
+    if (!projectInfo.orderConfirmationDate?.trim())
+      errors.orderConfirmationDate = 'Auftragsbestätigungsdatum ist erforderlich';
+    // deliveryCompletionDate stays optional: it is not always known up front.
+    if (
+      projectInfo.deliveryCompletionDate?.trim() &&
+      projectInfo.orderConfirmationDate?.trim() &&
+      projectInfo.deliveryCompletionDate < projectInfo.orderConfirmationDate
+    )
+      errors.deliveryCompletionDate = 'Liefertermin darf nicht vor der Auftragsbestätigung liegen';
     if (!clientInfo.contactPersonName?.trim())
       errors.contactPersonName = 'Ansprechpartner ist erforderlich';
     if (!clientInfo.contactPersonEmail?.trim()) {

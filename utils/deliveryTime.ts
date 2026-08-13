@@ -132,12 +132,16 @@ export function calculateDeliveryTime(services: ServiceData[]): DeliveryTimeResu
 }
 
 /**
- * Format delivery date based on working days
+ * Format delivery date based on working days.
+ *
+ * @param workingDays number of working days to add
+ * @param from ISO date (YYYY-MM-DD) to count from; defaults to today
  */
-export function calculateDeliveryDate(workingDays: number): string {
-  const today = new Date();
+export function calculateDeliveryDate(workingDays: number, from?: string): string {
+  const start = from ? new Date(from) : new Date();
+  if (Number.isNaN(start.getTime())) return '';
   let daysAdded = 0;
-  let currentDate = new Date(today);
+  const currentDate = new Date(start);
 
   while (daysAdded < workingDays) {
     currentDate.setDate(currentDate.getDate() + 1);

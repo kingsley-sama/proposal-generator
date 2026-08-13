@@ -119,10 +119,12 @@ const toBuildingTypeCode = (value?: string): string => {
 };
 
 // Resolve the building type for a service: an explicit per-service override
-// wins, then the property type from Setup, then the project type.
+// wins, then the Gebäudetyp from Setup. `propertyType` is deliberately not
+// consulted — it holds the projects.property_type enum
+// ('Commercial' | 'Residential'), which carries no building-type signal and
+// would otherwise shadow the Gebäudetyp with a value no price matrix knows.
 const resolveBuildingType = (service: any, data: any): string =>
   toBuildingTypeCode(service?.buildingType) ||
-  toBuildingTypeCode(data?.projectInfo?.propertyType) ||
   toBuildingTypeCode(data?.projectInfo?.projectType);
 
 // The subset of the document that the Setup form owns. Kept in one place so
@@ -146,6 +148,10 @@ const setupFieldsFrom = (state: any) => ({
     propertyType: state.projectInfo.propertyType,
     projectManagerName: state.projectInfo.projectManagerName,
     projectManagerType: state.projectInfo.projectManagerType,
+    projectCategory: state.projectInfo.projectCategory,
+    constructionType: state.projectInfo.constructionType,
+    questionnaireReceived: state.projectInfo.questionnaireReceived,
+    firstOrNextProject: state.projectInfo.firstOrNextProject,
   },
 });
 
@@ -203,11 +209,10 @@ export default function PreviewPage() {
   const [undo, setUndo] = useState<{ service: any; index: number } | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Whether the Setup form has been completed. It is only shown (and therefore
-  // only gates generation) when editing an already-saved proposal; a new
-  // proposal generates straight from the review view, as it did before.
-  const isReady = proposal.state.offerMeta?.isReady ?? false;
-  const canGenerate = !isExistingProposal || isReady;
+  // Marking ready (in SetupForm) is what creates the project in the database,
+  // but it does not gate document generation: this editor is also used to
+  // revise a proposal without confirming an order, so "DOCX erstellen" stays
+  // available either way. SetupForm owns the Bereit/Entwurf indicator.
 
   // Refs for summary spans — used by recomputePricingLive to update totals
   // directly in the DOM while the user is typing, so we don't trigger a full
@@ -1448,8 +1453,7 @@ export default function PreviewPage() {
           </button>
           <button
             onClick={handleGenerateProposal}
-            disabled={isGenerating || !canGenerate}
-            title={!canGenerate ? 'Bitte zuerst die Einrichtung abschließen' : undefined}
+            disabled={isGenerating}
             className="px-6 py-2.5 bg-green-500 text-white rounded-md text-sm font-semibold hover:bg-green-600 hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:bg-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-none whitespace-nowrap"
           >
             {isGenerating ? '⏳ Wird erstellt...' : '📄 DOCX erstellen'}
