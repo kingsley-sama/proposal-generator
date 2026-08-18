@@ -3,34 +3,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useProposal } from '@/contexts/ProposalContext';
 import { useNotification } from '@/contexts/NotificationContext';
-import { calculateDeliveryDate } from '@/utils/deliveryTime';
 import {
   CONSTRUCTION_TYPE_OPTIONS,
-  FIRST_NEXT_PROJECT_OPTIONS,
   PM_TYPE_OPTIONS,
   PROJECT_MANAGERS,
   PROJECT_TYPE_OPTIONS,
   PROPERTY_TYPE_OPTIONS,
 } from '@/lib/project-enums';
-
-// Building types mirror lib/proposal-config.js so Setup and generation agree.
-// Deliberately *not* a database enum: this drives the exterior-visualisation
-// price matrices and is stored on the proposal, not on the project row.
-const BUILDING_TYPES = [
-  'Einfamilienhaus',
-  'Doppelhaushälfte',
-  'Mehrfamilienhaus',
-  'Wohnanlage',
-  'Gewerbeimmobilie',
-  'Bürogebäude',
-  'Hotel',
-  'Einzelhandel',
-  'Industriegebäude',
-  'Mixed-Use',
-  'Custom',
-];
-
-const INVOICE_SPLITS = ['50 % / 50 %', '30 % / 70 %', '40 % / 60 %', 'Andere'];
 
 /**
  * The "extra information" form, embedded at the top of the edit page (above the
@@ -83,14 +62,6 @@ export default function SetupForm() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Working-day delivery date derived from the confirmation date and the
-  // delivery time the app already calculates from the selected services.
-  // Returns '' while no services are selected yet.
-  const deriveDeliveryDate = (fromIso: string): string => {
-    if (!fromIso || !projectInfo.deliveryDaysMax) return '';
-    return calculateDeliveryDate(projectInfo.deliveryDaysMax, fromIso);
-  };
 
   const clearError = (id: string) =>
     setErrors((prev) => {
@@ -326,40 +297,7 @@ export default function SetupForm() {
                 />
               </Field>
 
-              <Field label="Gebäudetyp" required error={errors.projectType}>
-                <select
-                  ref={registerRef('projectType') as any}
-                  value={projectInfo.projectType}
-                  onChange={(e) => {
-                    updateProjectInfo({ projectType: e.target.value });
-                    clearError('projectType');
-                  }}
-                  onBlur={revalidate}
-                  className={inputCls(errors.projectType)}
-                >
-                  <option value="">Bitte wählen…</option>
-                  {BUILDING_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {t === 'Custom' ? 'Andere (frei eingeben)' : t}
-                    </option>
-                  ))}
-                </select>
-                {projectInfo.projectType === 'Custom' && (
-                  <input
-                    ref={registerRef('customProjectType') as any}
-                    value={projectInfo.customProjectType}
-                    onChange={(e) => {
-                      updateProjectInfo({ customProjectType: e.target.value });
-                      clearError('customProjectType');
-                    }}
-                    onBlur={revalidate}
-                    placeholder="Gebäudetyp angeben"
-                    className={`${inputCls(errors.customProjectType)} mt-2`}
-                  />
-                )}
-              </Field>
-
-              <Field label="Immobilientyp" required error={errors.propertyType}>
+              <Field label="Property Type" required error={errors.propertyType}>
                 <select
                   ref={registerRef('propertyType') as any}
                   value={projectInfo.propertyType}
@@ -407,7 +345,7 @@ export default function SetupForm() {
                 </select>
               </Field>
 
-              <Field label="Projektart" required error={errors.projectCategory}>
+              <Field label="Project Type" required error={errors.projectCategory}>
                 <select
                   ref={registerRef('projectCategory') as any}
                   value={projectInfo.projectCategory}
@@ -427,7 +365,7 @@ export default function SetupForm() {
                 </select>
               </Field>
 
-              <Field label="Bauart" required error={errors.constructionType}>
+              <Field label="Construction Type" required error={errors.constructionType}>
                 <select
                   ref={registerRef('constructionType') as any}
                   value={projectInfo.constructionType}
@@ -447,105 +385,18 @@ export default function SetupForm() {
                 </select>
               </Field>
 
-              <Field label="Erst- oder Folgeprojekt" required error={errors.firstOrNextProject}>
-                <select
-                  ref={registerRef('firstOrNextProject') as any}
-                  value={projectInfo.firstOrNextProject}
-                  onChange={(e) => {
-                    updateProjectInfo({ firstOrNextProject: e.target.value });
-                    clearError('firstOrNextProject');
-                  }}
-                  onBlur={revalidate}
-                  className={inputCls(errors.firstOrNextProject)}
-                >
-                  <option value="">Bitte wählen…</option>
-                  {FIRST_NEXT_PROJECT_OPTIONS.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
-              <Field label="Fragebogen erhalten" required error={errors.questionnaireReceived}>
-                <div
-                  ref={registerRef('questionnaireReceived') as any}
-                  tabIndex={-1}
-                  className="flex flex-wrap items-center gap-2"
-                >
-                  <Toggle
-                    active={projectInfo.questionnaireReceived === 'Yes'}
-                    onClick={() => {
-                      updateProjectInfo({ questionnaireReceived: 'Yes' });
-                      clearError('questionnaireReceived');
-                    }}
-                    label="Ja"
-                  />
-                  <Toggle
-                    active={projectInfo.questionnaireReceived === 'No'}
-                    onClick={() => {
-                      updateProjectInfo({ questionnaireReceived: 'No' });
-                      clearError('questionnaireReceived');
-                    }}
-                    label="Nein"
-                  />
-                </div>
-              </Field>
-
               <Field label="Auftragsbestätigungsdatum" required error={errors.orderConfirmationDate}>
                 <input
                   ref={registerRef('orderConfirmationDate') as any}
                   type="date"
                   value={projectInfo.orderConfirmationDate}
                   onChange={(e) => {
-                    const iso = e.target.value;
-                    // Keep an untouched Liefertermin in step with the
-                    // confirmation date; once the user sets one, leave it be.
-                    const patch: Record<string, string> = { orderConfirmationDate: iso };
-                    if (!projectInfo.deliveryCompletionDate) {
-                      const derived = deriveDeliveryDate(iso);
-                      if (derived) patch.deliveryCompletionDate = derived;
-                    }
-                    updateProjectInfo(patch);
+                    updateProjectInfo({ orderConfirmationDate: e.target.value });
                     clearError('orderConfirmationDate');
                   }}
                   onBlur={revalidate}
                   className={inputCls(errors.orderConfirmationDate)}
                 />
-              </Field>
-
-              <Field label="Liefertermin" error={errors.deliveryCompletionDate}>
-                <input
-                  ref={registerRef('deliveryCompletionDate') as any}
-                  type="date"
-                  value={projectInfo.deliveryCompletionDate}
-                  onChange={(e) => {
-                    updateProjectInfo({ deliveryCompletionDate: e.target.value });
-                    clearError('deliveryCompletionDate');
-                  }}
-                  onBlur={revalidate}
-                  className={inputCls(errors.deliveryCompletionDate)}
-                />
-                <div className="mt-1 flex items-center justify-between gap-2">
-                  <span className="text-xs text-slate-500">
-                    Optional — {projectInfo.deliveryTime || 'Lieferzeit wird berechnet'}
-                  </span>
-                  {projectInfo.deliveryDaysMax > 0 && projectInfo.orderConfirmationDate && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const derived = deriveDeliveryDate(projectInfo.orderConfirmationDate);
-                        if (derived) {
-                          updateProjectInfo({ deliveryCompletionDate: derived });
-                          clearError('deliveryCompletionDate');
-                        }
-                      }}
-                      className="shrink-0 text-xs font-semibold text-slate-600 underline underline-offset-2 hover:text-slate-900"
-                    >
-                      Aus Lieferzeit berechnen
-                    </button>
-                  )}
-                </div>
               </Field>
 
               <Field label="Art des Projektleiters" required error={errors.projectManagerType}>
@@ -608,27 +459,6 @@ export default function SetupForm() {
                 />
               </Field>
 
-              <Field label="Anzahlung" required error={errors.deposit}>
-                <div ref={registerRef('deposit') as any} tabIndex={-1} className="flex flex-wrap items-center gap-2">
-                  <Toggle
-                    active={offerMeta.deposit === 'Yes'}
-                    onClick={() => {
-                      updateOfferMeta({ deposit: 'Yes' });
-                      clearError('deposit');
-                    }}
-                    label="Ja"
-                  />
-                  <Toggle
-                    active={offerMeta.deposit === 'No'}
-                    onClick={() => {
-                      updateOfferMeta({ deposit: 'No' });
-                      clearError('deposit');
-                    }}
-                    label="Nein"
-                  />
-                </div>
-              </Field>
-
               <Field label="Teilrechnung" required error={errors.partialInvoice} wide>
                 <div ref={registerRef('partialInvoice') as any} tabIndex={-1} className="flex flex-wrap items-center gap-2">
                   <Toggle
@@ -643,7 +473,7 @@ export default function SetupForm() {
                     active={offerMeta.partialInvoice.answered && !offerMeta.partialInvoice.enabled}
                     onClick={() => {
                       updateOfferMeta({
-                        partialInvoice: { answered: true, enabled: false, split: '', note: '' },
+                        partialInvoice: { answered: true, enabled: false, invoiceNumber: '', note: '' },
                       });
                       clearError('partialInvoice');
                     }}
@@ -652,21 +482,16 @@ export default function SetupForm() {
                 </div>
                 {offerMeta.partialInvoice.answered && offerMeta.partialInvoice.enabled && (
                   <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <select
-                      value={offerMeta.partialInvoice.split}
+                    <input
+                      value={offerMeta.partialInvoice.invoiceNumber}
                       onChange={(e) => {
-                        updateOfferMeta({ partialInvoice: { split: e.target.value } });
+                        updateOfferMeta({ partialInvoice: { invoiceNumber: e.target.value } });
                         clearError('partialInvoice');
                       }}
+                      onBlur={revalidate}
+                      placeholder="Teilrechnungsnummer"
                       className={inputCls(errors.partialInvoice)}
-                    >
-                      <option value="">Aufteilung wählen…</option>
-                      {INVOICE_SPLITS.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
+                    />
                     <input
                       value={offerMeta.partialInvoice.note}
                       onChange={(e) => updateOfferMeta({ partialInvoice: { note: e.target.value } })}

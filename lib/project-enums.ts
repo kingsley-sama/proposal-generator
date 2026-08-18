@@ -11,7 +11,7 @@
  *   fetch(u+'/rest/v1/',{headers:{apikey:k,Authorization:'Bearer '+k}}).then(r=>r.json()).then(j=>\
  *   Object.entries(j.definitions.projects.properties).forEach(([n,p])=>p.enum&&console.log(n,p.format,p.enum)))"
  *
- * Last verified: 2026-08-05.
+ * Last verified: 2026-08-17.
  */
 
 /** projects.pm_type — public.pm_type */
@@ -26,10 +26,14 @@ export const CONSTRUCTION_TYPES = ['Existing', 'New'] as const;
 /** projects.property_type — public.property_type_values */
 export const PROPERTY_TYPES = ['Commercial', 'Residential'] as const;
 
-/** projects.questionnaire_received and projects.deposit — public.yes_no_values */
+/**
+ * projects.questionnaire_received and projects.deposit — public.yes_no_values.
+ * Not collected by the Setup form: questionnaire_received is seeded 'No' when a
+ * project is created and owned by the PM afterwards; deposit is not written.
+ */
 export const YES_NO = ['Yes', 'No'] as const;
 
-/** projects.first_or_next_project — public.first_next_project */
+/** projects.first_or_next_project — public.first_next_project (not collected by the Setup form) */
 export const FIRST_NEXT_PROJECT = ['First', 'Next'] as const;
 
 /** projects.project_status — public.project_status_values */
@@ -74,8 +78,13 @@ export type ProjectStatus = (typeof PROJECT_STATUSES)[number];
 export type ProjectManager = (typeof PROJECT_MANAGERS)[number];
 
 /**
- * German labels for the enum values shown in the Setup form. Only the label is
- * localised — the value stored in the database stays the enum member itself.
+ * Options for the dropdowns the Setup form renders. Labels mirror the database
+ * values verbatim so the form and the projects table read identically; pm_type
+ * is the one exception, where the enum members are lower-case internal codes.
+ *
+ * Columns the form no longer collects — first_or_next_project, deposit,
+ * questionnaire_received (seeded 'No' on creation), delivery_completion_date —
+ * have no options list; their domains stay above as documentation.
  */
 export const PM_TYPE_OPTIONS: { value: PmType; label: string }[] = [
   { value: 'general', label: 'Allgemein' },
@@ -83,27 +92,17 @@ export const PM_TYPE_OPTIONS: { value: PmType; label: string }[] = [
 ];
 
 export const PROJECT_TYPE_OPTIONS: { value: ProjectType; label: string }[] = [
-  { value: 'Standard', label: 'Standard' },
-  { value: 'Flat rate', label: 'Pauschale (Flat rate)' },
   { value: 'Digital Makler', label: 'Digital Makler' },
+  { value: 'Flat rate', label: 'Flat rate' },
+  { value: 'Standard', label: 'Standard' },
 ];
 
 export const CONSTRUCTION_TYPE_OPTIONS: { value: ConstructionType; label: string }[] = [
-  { value: 'New', label: 'Neubau' },
-  { value: 'Existing', label: 'Bestand' },
+  { value: 'New', label: 'New' },
+  { value: 'Existing', label: 'Existing' },
 ];
 
 export const PROPERTY_TYPE_OPTIONS: { value: PropertyType; label: string }[] = [
-  { value: 'Residential', label: 'Wohnimmobilie' },
-  { value: 'Commercial', label: 'Gewerbeimmobilie' },
-];
-
-export const FIRST_NEXT_PROJECT_OPTIONS: { value: FirstNextProject; label: string }[] = [
-  { value: 'First', label: 'Erstprojekt' },
-  { value: 'Next', label: 'Folgeprojekt' },
-];
-
-export const YES_NO_OPTIONS: { value: YesNo; label: string }[] = [
-  { value: 'Yes', label: 'Ja' },
-  { value: 'No', label: 'Nein' },
+  { value: 'Commercial', label: 'Commercial' },
+  { value: 'Residential', label: 'Residential' },
 ];

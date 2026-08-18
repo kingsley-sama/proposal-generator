@@ -41,14 +41,8 @@ export interface ProjectInfo {
   projectCategory: string;
   /** DB enum public.construction_type_values: 'New' | 'Existing' */
   constructionType: string;
-  /** DB enum public.yes_no_values: 'Yes' | 'No' */
-  questionnaireReceived: string;
-  /** DB enum public.first_next_project: 'First' | 'Next' */
-  firstOrNextProject: string;
   /** ISO date → projects.order_confirmation_date (NOT NULL in the DB) */
   orderConfirmationDate: string;
-  /** ISO date → projects.delivery_completion_date (optional) */
-  deliveryCompletionDate: string;
   deliveryTime: string;
   deliveryDaysMin: number;
   deliveryDaysMax: number;
@@ -63,15 +57,18 @@ export interface PartialInvoiceInfo {
   /** True once the user has explicitly answered the Yes/No toggle. */
   answered: boolean;
   enabled: boolean;
-  split: string;
+  /**
+   * The partial invoice's number, written verbatim to projects.partial_invoice
+   * when the answer is "Ja". Mandatory in that case — a "Nein" answer stores the
+   * literal 'no' instead and leaves this empty.
+   */
+  invoiceNumber: string;
   note: string;
 }
 
 export interface OfferMeta {
   salespersonName: string;
   partialInvoice: PartialInvoiceInfo;
-  /** DB enum public.yes_no_values: 'Yes' | 'No' */
-  deposit: string;
   /** Set to true once the Setup form has passed "Mark as Ready". */
   isReady: boolean;
 }
@@ -242,10 +239,7 @@ const createInitialState = (): ProposalState => ({
     projectManagerType: '',
     projectCategory: '',
     constructionType: '',
-    questionnaireReceived: '',
-    firstOrNextProject: '',
     orderConfirmationDate: new Date().toISOString().split('T')[0],
-    deliveryCompletionDate: '',
     deliveryTime: 'Calculated automatically',
     deliveryDaysMin: 0,
     deliveryDaysMax: 0,
@@ -257,8 +251,7 @@ const createInitialState = (): ProposalState => ({
   },
   offerMeta: {
     salespersonName: '',
-    partialInvoice: { answered: false, enabled: false, split: '', note: '' },
-    deposit: '',
+    partialInvoice: { answered: false, enabled: false, invoiceNumber: '', note: '' },
     isReady: false
   },
   services: [],
@@ -680,27 +673,13 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
       errors.projectManagerName = 'Name des Projektleiters ist erforderlich';
     if (!projectInfo.projectManagerType?.trim())
       errors.projectManagerType = 'Art des Projektleiters ist erforderlich';
-    if (!projectInfo.projectType?.trim()) errors.projectType = 'Gebäudetyp ist erforderlich';
-    if (projectInfo.projectType === 'Custom' && !projectInfo.customProjectType?.trim())
-      errors.customProjectType = 'Bitte den Gebäudetyp angeben';
-    if (!projectInfo.propertyType?.trim()) errors.propertyType = 'Immobilientyp ist erforderlich';
-    if (!projectInfo.projectCategory?.trim()) errors.projectCategory = 'Projektart ist erforderlich';
+    if (!projectInfo.propertyType?.trim()) errors.propertyType = 'Property Type ist erforderlich';
+    if (!projectInfo.projectCategory?.trim()) errors.projectCategory = 'Project Type ist erforderlich';
     if (!projectInfo.constructionType?.trim())
-      errors.constructionType = 'Bauart (Neubau/Bestand) ist erforderlich';
-    if (!projectInfo.questionnaireReceived?.trim())
-      errors.questionnaireReceived = 'Bitte angeben, ob der Fragebogen vorliegt';
-    if (!projectInfo.firstOrNextProject?.trim())
-      errors.firstOrNextProject = 'Bitte Erst- oder Folgeprojekt angeben';
+      errors.constructionType = 'Construction Type (New/Existing) ist erforderlich';
     // NOT NULL in the DB — never let it fall through to the CURRENT_DATE default.
     if (!projectInfo.orderConfirmationDate?.trim())
       errors.orderConfirmationDate = 'Auftragsbestätigungsdatum ist erforderlich';
-    // deliveryCompletionDate stays optional: it is not always known up front.
-    if (
-      projectInfo.deliveryCompletionDate?.trim() &&
-      projectInfo.orderConfirmationDate?.trim() &&
-      projectInfo.deliveryCompletionDate < projectInfo.orderConfirmationDate
-    )
-      errors.deliveryCompletionDate = 'Liefertermin darf nicht vor der Auftragsbestätigung liegen';
     if (!clientInfo.contactPersonName?.trim())
       errors.contactPersonName = 'Ansprechpartner ist erforderlich';
     if (!clientInfo.contactPersonEmail?.trim()) {
@@ -713,10 +692,9 @@ export function ProposalProvider({ children }: { children: ReactNode }) {
     if (!projectInfo.date?.trim()) errors.date = 'Datum ist erforderlich';
     if (!offerMeta.partialInvoice.answered) {
       errors.partialInvoice = 'Bitte Teilrechnung mit Ja oder Nein beantworten';
-    } else if (offerMeta.partialInvoice.enabled && !offerMeta.partialInvoice.split?.trim()) {
-      errors.partialInvoice = 'Bitte die Aufteilung der Teilrechnung angeben';
+    } else if (offerMeta.partialInvoice.enabled && !offerMeta.partialInvoice.invoiceNumber?.trim()) {
+      errors.partialInvoice = 'Bitte die Teilrechnungsnummer angeben';
     }
-    if (!offerMeta.deposit?.trim()) errors.deposit = 'Bitte Anzahlung mit Ja oder Nein beantworten';
 
     return errors;
   }, [state]);

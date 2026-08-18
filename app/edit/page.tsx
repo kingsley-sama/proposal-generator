@@ -150,8 +150,6 @@ const setupFieldsFrom = (state: any) => ({
     projectManagerType: state.projectInfo.projectManagerType,
     projectCategory: state.projectInfo.projectCategory,
     constructionType: state.projectInfo.constructionType,
-    questionnaireReceived: state.projectInfo.questionnaireReceived,
-    firstOrNextProject: state.projectInfo.firstOrNextProject,
   },
 });
 

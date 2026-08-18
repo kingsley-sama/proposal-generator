@@ -3,12 +3,11 @@ import { NextResponse } from 'next/server';
 import { resolveEmailId, upsertProject } from '@/lib/utils';
 import {
   CONSTRUCTION_TYPES,
-  FIRST_NEXT_PROJECT,
   PM_TYPES,
   PROJECT_TYPES,
   PROPERTY_TYPES,
-  YES_NO,
   type ProjectStatus,
+  type YesNo,
 } from '@/lib/project-enums';
 
 export const runtime = 'nodejs';
@@ -17,6 +16,18 @@ export const runtime = 'nodejs';
 // value fails with a readable message instead of a raw Postgres
 // "invalid input value" error.
 const DEFAULT_PROJECT_STATUS: ProjectStatus = 'Offen';
+
+/**
+ * A project is created the moment Lidia marks the proposal ready, which is
+ * before the PM has had the questionnaire conversation with the client, so the
+ * Setup form does not ask about it at all. Creation seeds 'No' — "handed over,
+ * questionnaire still pending" — rather than NULL, which reads as "nobody has
+ * looked at this yet" in the dashboard.
+ *
+ * Creating the project does not start the intake automation. That runs when the
+ * PM flips questionnaire_received to 'Yes' (trg_projects_questionnaire_received).
+ */
+const DEFAULT_QUESTIONNAIRE_RECEIVED: YesNo = 'No';
 
 const oneOf = (
   value: string | undefined,
@@ -36,14 +47,14 @@ const oneOf = (
  * issued (e.g. "RE-2026-05-1801"), or the literal 'no' when the project has no
  * partial invoice — it is not a free-text description of the arrangement.
  *
- * So a "Nein" answer writes 'no', and a "Ja" answer writes nothing: the number
- * is not known yet and is filled in later by the invoicing workflow. Returning
- * null also means upsertProject drops the key, so re-marking a proposal ready
- * can never overwrite a number that has since been issued.
+ * So a "Nein" answer writes 'no', and a "Ja" answer writes the number the Setup
+ * form now requires. An unanswered toggle returns null, which makes
+ * upsertProject drop the key rather than overwrite what is already stored.
  */
 const toPartialInvoice = (partialInvoice: any): string | null => {
   if (!partialInvoice?.answered) return null;
-  return partialInvoice.enabled ? null : 'no';
+  if (!partialInvoice.enabled) return 'no';
+  return (partialInvoice.invoiceNumber || '').trim() || null;
 };
 
 /** ISO date (YYYY-MM-DD) or null — anything else is rejected by Postgres. */
@@ -103,15 +114,7 @@ export async function POST(request: Request) {
       project_type: oneOf(projectInfo.projectCategory, PROJECT_TYPES, 'project_type'),
       construction_type: oneOf(projectInfo.constructionType, CONSTRUCTION_TYPES, 'construction_type'),
       property_type: oneOf(projectInfo.propertyType, PROPERTY_TYPES, 'property_type'),
-      questionnaire_received: oneOf(projectInfo.questionnaireReceived, YES_NO, 'questionnaire_received'),
-      first_or_next_project: oneOf(
-        projectInfo.firstOrNextProject,
-        FIRST_NEXT_PROJECT,
-        'first_or_next_project'
-      ),
-      deposit: oneOf(offerMeta.deposit, YES_NO, 'deposit'),
       order_confirmation_date: toDate(projectInfo.orderConfirmationDate, 'order_confirmation_date'),
-      delivery_completion_date: toDate(projectInfo.deliveryCompletionDate, 'delivery_completion_date'),
       sales_person: (offerMeta.salespersonName || '').trim() || null,
       client_id: clientId,
       email_id: emailId,
@@ -124,6 +127,12 @@ export async function POST(request: Request) {
     // be dragged back when its proposal is edited and re-marked ready.
     const { project: saved, created } = await upsertProject(project, {
       project_status: DEFAULT_PROJECT_STATUS,
+      // Creation-only: the Setup form no longer asks about the questionnaire, so
+      // every new project starts as 'No' ("handed over, questionnaire pending")
+      // and the PM flips it to 'Yes' in the dashboard. Keeping it out of the
+      // update payload means re-marking a proposal ready can never drag a
+      // confirmed 'Yes' back and re-arm the intake trigger behind the PM's back.
+      questionnaire_received: DEFAULT_QUESTIONNAIRE_RECEIVED,
     });
 
     return NextResponse.json({
