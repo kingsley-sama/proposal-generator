@@ -104,7 +104,32 @@ export async function POST(request: Request) {
 
     // person_id is filled by trg_projects_set_person_from_email_fn once
     // email_id is set, so only the email needs resolving here.
-    const emailId = await resolveEmailId(clientId, companyEmail);
+    //
+    // email_id is not optional: trg_projects_check_company_client rejects a
+    // project whose email is NULL or owned by another company. Failing here
+    // with the client's details is far more actionable than the raw Postgres
+    // "refers to email_id <NULL> which is not linked to any company".
+    const { emailId, exact, linkedEmail, companyFound } = await resolveEmailId(
+      clientId,
+      companyEmail
+    );
+
+    if (emailId === null) {
+      const reason = !clientId
+        ? 'Es wurde keine Kunden-ID angegeben, und die E-Mail-Adresse ist keiner Firma zugeordnet.'
+        : companyFound
+          ? `Zur Kunden-ID ${clientId} ist keine E-Mail-Adresse hinterlegt.`
+          : `Zur Kunden-ID ${clientId} wurde keine Firma gefunden.`;
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            `Das Projekt kann keiner Firma zugeordnet werden. ${reason} ` +
+            'Bitte die Kunden-ID prüfen bzw. die Firma und ihre E-Mail-Adresse in der Datenbank anlegen.',
+        },
+        { status: 400 }
+      );
+    }
 
     const project = {
       project_id: projectId,
@@ -139,7 +164,8 @@ export async function POST(request: Request) {
       success: true,
       project: saved,
       created,
-      emailMatched: emailId !== null,
+      emailMatched: exact,
+      linkedEmail,
     });
   } catch (error: any) {
     console.error('❌ Error creating project:', error);

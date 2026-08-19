@@ -143,9 +143,13 @@ export default function SetupForm() {
           : `Angebot als bereit markiert — Projekt ${projectInfo.projectNumber} aktualisiert`,
         'success'
       );
-      if (!json.emailMatched) {
+      // The `emails` table stores company addresses, so a contact person's own
+      // address usually has no row of its own and the project is linked to the
+      // company's stored address instead. Worth saying which one, since that is
+      // what the PM will see on the project.
+      if (!json.emailMatched && json.linkedEmail) {
         showNotification(
-          'Hinweis: Die E-Mail des Ansprechpartners ist keinem Kontakt zugeordnet — das Projekt wurde ohne Kontaktverknüpfung angelegt.',
+          `Hinweis: Die E-Mail des Ansprechpartners ist nicht hinterlegt — das Projekt wurde mit der Firmen-E-Mail ${json.linkedEmail} verknüpft.`,
           'info'
         );
       }
