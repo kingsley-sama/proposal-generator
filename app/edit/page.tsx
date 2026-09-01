@@ -177,6 +177,7 @@ export default function PreviewPage() {
   const proposal = useProposal();
   const [proposalData, setProposalData] = useState<ProposalData | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [hasDiscount, setHasDiscount] = useState(false);
   const [discountValue, setDiscountValue] = useState('0');
   const [discountDescription, setDiscountDescription] = useState('');
@@ -1254,6 +1255,72 @@ export default function PreviewPage() {
     return (subtotal * percentage / 100).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
   };
 
+  // Hand the produced .docx to the browser. Shared by both save paths so a
+  // regenerated document reaches the user exactly as a new one does.
+  const downloadDocx = (base64: string, name?: string) => {
+    const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+    const blob = new Blob([bytes], {
+      type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name || 'Angebot.docx';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // The body both update paths send. The Setup form's fields live in
+  // ProposalContext rather than in the rendered document, so they have to be
+  // merged in here or they never reach the server.
+  const buildUpdatePayload = (data: ProposalData, regenerate: boolean) => {
+    const setup = setupFieldsFromContext();
+    return {
+      clientInfo: { ...data.clientInfo, ...pickFilled(setup.clientInfo) },
+      projectInfo: { ...data.projectInfo, ...pickFilled(setup.projectInfo) },
+      offerMeta: proposal.state.offerMeta,
+      services: data.services,
+      pricing: data.pricing,
+      images: data.images || [],
+      regenerate,
+    };
+  };
+
+  // Save an edit to a saved proposal without producing a document.
+  //
+  // Until this existed the editor had no way to write to the row it was editing
+  // at all: the only persistence path was "DOCX erstellen", which inserted a
+  // brand-new proposal under a fresh offer number and left the one on screen
+  // untouched. Edits appeared to vanish because they were being written to a
+  // different row.
+  //
+  // No document is produced, so no version is cut — versions record documents
+  // that could have gone to the client, not every intermediate save.
+  const handleSaveProposal = async () => {
+    if (!proposalData || !isExistingProposal) return;
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(`/api/proposals/${encodeURIComponent(offerNumber)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(buildUpdatePayload(proposalData, false)),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Angebot konnte nicht gespeichert werden');
+      }
+      showNotification('Änderungen gespeichert.', 'success');
+    } catch (error: any) {
+      console.error('Error:', error);
+      showNotification(`Speichern fehlgeschlagen: ${error.message}`, 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleGenerateProposal = async () => {
     if (!proposalData) return;
 
@@ -1277,26 +1344,41 @@ export default function PreviewPage() {
     setIsGenerating(true);
 
     try {
-      // While editing a saved proposal, merge in the Setup form's fields — they
-      // live in ProposalContext, not in the rendered document, and without this
-      // they never reach generation. A new proposal is generated from the
-      // document alone, as it was before the form existed.
-      const setup = setupFieldsFromContext();
-      const payload = isExistingProposal
-        ? {
-            ...proposalData,
-            clientInfo: { ...proposalData.clientInfo, ...pickFilled(setup.clientInfo) },
-            projectInfo: { ...proposalData.projectInfo, ...pickFilled(setup.projectInfo) },
-            offerMeta: proposal.state.offerMeta,
-          }
-        : { ...proposalData };
+      // A saved proposal is updated in place. It used to be POSTed to
+      // /api/generate-proposal like a new one, which allocated a fresh offer
+      // number and INSERTed a second row — so the edit produced a duplicate
+      // proposal while the original kept its old services and stayed a draft.
+      if (isExistingProposal) {
+        const response = await fetch(`/api/proposals/${encodeURIComponent(offerNumber)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(buildUpdatePayload(proposalData, true)),
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Angebot konnte nicht aktualisiert werden');
+        }
+
+        const total = result.proposal?.pricing?.totalGrossPrice ?? proposalData.pricing?.totalGrossPrice;
+        alert(
+          `✅ Angebot aktualisiert!\n\n` +
+            `Angebotsnummer: ${offerNumber}\n` +
+            `Version: ${result.versionNo ?? '—'}\n` +
+            `Kunde: ${result.proposal?.company_name || proposalData.clientInfo?.companyName}\n` +
+            `Gesamt: ${total} €`
+        );
+
+        if (result.docxBase64) downloadDocx(result.docxBase64, result.filename);
+        if (result.regenerateNote) showNotification(result.regenerateNote, 'info');
+        return;
+      }
 
       const response = await fetch('/api/generate-proposal', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ ...proposalData, offerMeta: proposal.state.offerMeta })
       });
 
       const result = await response.json();
@@ -1304,18 +1386,7 @@ export default function PreviewPage() {
       if (response.ok && result.success) {
         alert(`✅ Angebot erfolgreich erstellt!\n\nAngebotsnummer: ${result.offerNumber}\nKunde: ${result.clientName}\nGesamt: ${result.totalAmount} €`);
 
-        if (result.docxBase64) {
-          const bytes = Uint8Array.from(atob(result.docxBase64), c => c.charCodeAt(0));
-          const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = result.filename || 'Angebot.docx';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }
+        if (result.docxBase64) downloadDocx(result.docxBase64, result.filename);
       } else {
         throw new Error(result.error || 'Failed to generate proposal');
       }
@@ -1449,12 +1520,25 @@ export default function PreviewPage() {
           >
             + Produkt hinzufügen
           </button>
+          {isExistingProposal && (
+            <button
+              onClick={handleSaveProposal}
+              disabled={isSaving || isGenerating}
+              className="px-4 py-2.5 bg-white/15 text-white rounded-md text-sm font-semibold hover:bg-white/25 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              {isSaving ? '⏳ Speichern…' : '💾 Speichern'}
+            </button>
+          )}
           <button
             onClick={handleGenerateProposal}
-            disabled={isGenerating}
+            disabled={isGenerating || isSaving}
             className="px-6 py-2.5 bg-green-500 text-white rounded-md text-sm font-semibold hover:bg-green-600 hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:bg-gray-500 disabled:cursor-not-allowed disabled:transform-none disabled:hover:shadow-none whitespace-nowrap"
           >
-            {isGenerating ? '⏳ Wird erstellt...' : '📄 DOCX erstellen'}
+            {isGenerating
+              ? '⏳ Wird erstellt...'
+              : isExistingProposal
+                ? '📄 DOCX aktualisieren'
+                : '📄 DOCX erstellen'}
           </button>
         </div>
       </div>

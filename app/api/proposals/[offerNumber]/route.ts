@@ -5,7 +5,14 @@ import libreConvert from 'libreoffice-convert';
 // @ts-ignore
 import TemplateDocxProposalGenerator from '@/lib/template-docx-generator';
 // @ts-ignore
-import { getProposalByOfferNumber, updateProposal, uploadProposalFiles } from '@/lib/utils';
+import {
+  createProposalVersion,
+  getProposalByOfferNumber,
+  nextVersionNo,
+  updateProposal,
+  uploadProposalFiles,
+  versionStoragePath,
+} from '@/lib/utils';
 import { calculateDeliveryTime } from '@/utils/deliveryTime';
 
 const libreConvertAsync = promisify(libreConvert.convert);
@@ -50,7 +57,7 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
     }
 
     const body = await request.json();
-    const { clientInfo, services, pricing, regenerate } = body || {};
+    const { clientInfo, services, pricing, regenerate, projectInfo, offerMeta, images } = body || {};
 
     if (!clientInfo || !services || !pricing) {
       return NextResponse.json(
@@ -82,14 +89,42 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
       delivery_time_max: delivery.deliveryDaysMax || null,
     };
 
+    // The Setup form's fields live in ProposalContext, not in the rendered
+    // document, so they only reach the database if the editor sends them. They
+    // were dropped here before, which meant a change made in that form was
+    // silently lost on save. Blank values are ignored rather than written, so an
+    // untouched field cannot blank out what is already stored.
+    const setupPatch: Record<string, any> = {
+      project_number: projectInfo?.projectNumber,
+      project_name: projectInfo?.projectName,
+      project_type: projectInfo?.projectType,
+      offer_valid_until: projectInfo?.offerValidUntil,
+      sales_person: offerMeta?.salespersonName,
+    };
+    Object.entries(setupPatch).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== '') patch[key] = value;
+    });
+
+    // Values the regenerated document must be built from: what was just sent,
+    // falling back to what is stored.
+    const effective = { ...existing, ...patch };
+
     let regenerateNote: string | null = null;
+    let docxBase64: string | null = null;
+    let docxFilename: string | null = null;
+    let versionNo: number | null = null;
 
     if (regenerate) {
+      // Version folders are {client}/{offer}/v{n}, and the pre-versioning flat
+      // path was {client}/{offer} — the first segment is the client folder in
+      // both, so this keeps working for proposals generated before versioning.
       const folderFromDoc = existing.document_url?.folder as string | undefined;
       const clientFolderName =
         folderFromDoc?.split('/')[0] ||
         `${sanitize(String(existing.client_id ?? ''))}_${sanitize(existing.company_name)}`;
-      const storageFolderPath = `${clientFolderName}/${offerNumber}`;
+
+      versionNo = nextVersionNo(existing);
+      const storageFolderPath = versionStoragePath(clientFolderName, offerNumber, versionNo);
 
       const offerDate: string | undefined =
         existing.proposal_date || existing.created_at || undefined;
@@ -107,6 +142,18 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
         }
       }
 
+      // Images are not persisted on the proposal row, so they can only come
+      // from the editor's own state. When it sends them the regenerated
+      // document keeps them; when it does not, the note below says so.
+      const regenImages = Array.isArray(images)
+        ? images.filter((img: any) => img?.imageData).map((img: any) => ({
+            title: img.title || '',
+            description: img.description || '',
+            imageData: img.imageData,
+            fileType: img.fileType || 'image/png',
+          }))
+        : [];
+
       const docxData = {
         offerNumber,
         clientInfo: {
@@ -120,26 +167,34 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
           date: dateStr,
           MM,
           DD,
-          offerValidUntil: existing.offer_valid_until || null,
+          offerValidUntil: effective.offer_valid_until || null,
           deliveryTime: delivery.deliveryTime,
-          projectName: existing.project_name || null,
-          projectNumber: existing.project_number || null,
+          projectName: effective.project_name || null,
+          projectNumber: effective.project_number || null,
           year,
-          projectType: existing.project_type || null,
-          customProjectType: existing.custom_project_type || null,
+          projectType: effective.project_type || null,
+          customProjectType: effective.custom_project_type || null,
         },
         pricing: patch.pricing,
         signature: {
           signatureName: existing.signature_name || 'Christopher Helm',
         },
         services,
-        images: [],
+        images: regenImages,
         terms: existing.terms || {},
       };
 
       const generator = new TemplateDocxProposalGenerator(docxData);
       const { buffer: docxBuffer } = await generator.generate();
-      const pdfBuffer: Buffer = await libreConvertAsync(docxBuffer, '.pdf', undefined);
+
+      // Best-effort, as in /api/generate-proposal: without LibreOffice on the
+      // host the DOCX is still produced and only the PDF copy is skipped.
+      let pdfBuffer: Buffer | null = null;
+      try {
+        pdfBuffer = await libreConvertAsync(docxBuffer, '.pdf', undefined);
+      } catch (convertError: any) {
+        console.error('⚠️  PDF conversion failed (DOCX still generated):', convertError.message);
+      }
 
       const fileUrls = await uploadProposalFiles(docxBuffer, pdfBuffer, storageFolderPath);
       patch.document_url = {
@@ -147,17 +202,48 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
         pdf: fileUrls.pdfUrl,
         folder: fileUrls.storagePath,
       };
-      regenerateNote =
-        'Documents regenerated. Note: images from the original proposal are not re-included (image data is not persisted in the database).';
+
+      // Returned so the editor can hand the user the file it just produced,
+      // exactly as generating a new proposal does — including the same filename
+      // shape, so a regenerated document is not distinguishable in Downloads.
+      docxBase64 = docxBuffer.toString('base64');
+      const safeCompanyName = String(patch.company_name || '')
+        .replace(/[^a-zA-Z0-9äöüÄÖÜß\s&]/g, '')
+        .substring(0, 50);
+      docxFilename = `${year.slice(-2)}${MM}${DD}_Angebot_${safeCompanyName} ExposéProfi.docx`;
+
+      if (regenImages.length === 0) {
+        regenerateNote =
+          'Dokument neu erstellt. Hinweis: Bilder werden nicht in der Datenbank gespeichert — ohne im Editor geladene Bilder enthält das neue Dokument keine.';
+      }
     }
 
     const updated = await updateProposal(offerNumber, patch);
+
+    // A version is cut only when a document was produced: a version is meant to
+    // be something that could have gone to the client, not every keystroke that
+    // was saved along the way. Non-fatal — the edit itself is already committed.
+    let version: any = null;
+    if (regenerate && updated) {
+      try {
+        version = await createProposalVersion(updated, {
+          changeType: 'regenerate',
+          actor: offerMeta?.salespersonName || updated.sales_person || null,
+        });
+      } catch (versionError: any) {
+        console.error('⚠️  Proposal updated but version not recorded:', versionError.message);
+      }
+    }
 
     return NextResponse.json({
       success: true,
       proposal: updated,
       regenerated: Boolean(regenerate),
       regenerateNote,
+      docxBase64,
+      filename: docxFilename,
+      version,
+      versionNo,
     });
   } catch (error: any) {
     console.error('❌ Error updating proposal:', error);

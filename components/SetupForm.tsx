@@ -109,6 +109,12 @@ export default function SetupForm() {
   // Marking ready is what creates the project in the database, so the flag is
   // only set once that write succeeds — otherwise the user could carry on
   // believing the project exists when it does not.
+  //
+  // The offer number is what lets the server carry the transition onto the
+  // proposal row as well: it flips proposal_status to 'ready', stores the
+  // project_id, and cuts the version that records the handover. A proposal that
+  // has not been generated yet has no row and no number, so that half is
+  // skipped and /api/generate-proposal writes 'ready' at insert time instead.
   const handleMarkAsReady = async () => {
     setSubmitted(true);
     const found = getSetupErrors();
@@ -127,20 +133,34 @@ export default function SetupForm() {
       const res = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientInfo, projectInfo, offerMeta }),
+        body: JSON.stringify({
+          clientInfo,
+          projectInfo,
+          offerMeta,
+          offerNumber: state.rawProposalData?.offerNumber || '',
+        }),
       });
       const json = await res.json();
       if (!res.ok || !json?.success) {
         throw new Error(json?.error || 'Projekt konnte nicht gespeichert werden');
       }
 
+      // The project saved, but the proposal did not flip to ready. Claiming
+      // otherwise would put a green "Bereit" badge above a row the list still
+      // shows as a draft — exactly the mismatch this flow is meant to end.
+      if (json.proposalWarning) {
+        showNotification(json.proposalWarning, 'error');
+        return;
+      }
+
       updateOfferMeta({ isReady: true });
       saveToStorage();
       setCollapsed(true);
+      const projectVerb = json.created ? 'angelegt' : 'aktualisiert';
       showNotification(
-        json.created
-          ? `Angebot als bereit markiert — Projekt ${projectInfo.projectNumber} angelegt`
-          : `Angebot als bereit markiert — Projekt ${projectInfo.projectNumber} aktualisiert`,
+        json.version
+          ? `Angebot als bereit markiert — Projekt ${projectInfo.projectNumber} ${projectVerb} (Version ${json.version.version_no})`
+          : `Angebot als bereit markiert — Projekt ${projectInfo.projectNumber} ${projectVerb}`,
         'success'
       );
       // The `emails` table stores company addresses, so a contact person's own

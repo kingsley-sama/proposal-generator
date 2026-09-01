@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 // @ts-ignore
-import { resolveEmailId, upsertProject } from '@/lib/utils';
+import {
+  createProposalVersion,
+  getProposalByOfferNumber,
+  resolveEmailId,
+  updateProposal,
+  upsertProject,
+} from '@/lib/utils';
 import {
   CONSTRUCTION_TYPES,
   PM_TYPES,
@@ -160,12 +166,76 @@ export async function POST(request: Request) {
       questionnaire_received: DEFAULT_QUESTIONNAIRE_RECEIVED,
     });
 
+    // ── Mirror the transition onto the proposal ─────────────────────────────
+    // Creating the project is what makes a proposal "ready", so the proposal row
+    // has to record it — both the status the list reads and the project_id that
+    // ties the two together. Without this the transition lived only in React
+    // state and the list went on showing "draft" forever.
+    //
+    // A brand-new proposal has no row yet (it is inserted by
+    // /api/generate-proposal), so there is nothing to update here; that path
+    // writes 'ready' at insert time from offerMeta.isReady instead.
+    let proposal: any = null;
+    let version: any = null;
+    let proposalWarning: string | null = null;
+
+    const offerNumber = (body?.offerNumber || '').toString().trim();
+    if (offerNumber) {
+      try {
+        const existing = await getProposalByOfferNumber(offerNumber);
+        if (!existing) {
+          proposalWarning =
+            `Angebot ${offerNumber} wurde nicht gefunden — der Status konnte nicht auf "bereit" gesetzt werden.`;
+        } else {
+          // Null-valued keys are dropped for the same reason upsertProject drops
+          // them: an optional field left blank on the Setup form must not blank
+          // out what is already stored on the proposal.
+          const patch: Record<string, any> = {
+            proposal_status: 'ready',
+            project_id: projectId,
+            project_number: projectId,
+            project_manager: projectManager,
+            project_name: project.project_name,
+            pm_type: project.pm_type,
+            sales_person: project.sales_person,
+            construction_type: project.construction_type,
+            property_type: project.property_type,
+            email_id: emailId,
+            company_email: companyEmail,
+            client_contact_name: project.client_contact_name,
+          };
+          Object.keys(patch).forEach((k) => {
+            if (patch[k] === null || patch[k] === undefined || patch[k] === '') delete patch[k];
+          });
+
+          proposal = await updateProposal(offerNumber, patch);
+
+          // The version carrying a project_id is the ready one — that is what
+          // separates it from every draft snapshot cut before it.
+          version = await createProposalVersion(proposal, {
+            changeType: 'ready',
+            actor: project.sales_person || null,
+          });
+        }
+      } catch (e: any) {
+        // The project itself is saved either way. Swallowing this would tell
+        // Lidia the proposal is ready while the list still says draft, so it is
+        // reported alongside the success rather than thrown.
+        console.error('⚠️  Project saved but proposal not marked ready:', e.message);
+        proposalWarning =
+          `Projekt gespeichert, aber das Angebot konnte nicht als bereit markiert werden: ${e.message}`;
+      }
+    }
+
     return NextResponse.json({
       success: true,
       project: saved,
       created,
       emailMatched: exact,
       linkedEmail,
+      proposal,
+      version,
+      proposalWarning,
     });
   } catch (error: any) {
     console.error('❌ Error creating project:', error);

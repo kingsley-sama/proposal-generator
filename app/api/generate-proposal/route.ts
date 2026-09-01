@@ -5,11 +5,21 @@ import libreConvert from 'libreoffice-convert';
 // @ts-ignore
 import TemplateDocxProposalGenerator from '@/lib/template-docx-generator';
 // @ts-ignore
-import { getClientDetails, getNextOfferNumber, save_proposal_detail, uploadProposalFiles } from '@/lib/utils';
+import {
+  createProposalVersion,
+  getClientDetails,
+  getNextOfferNumber,
+  save_proposal_detail,
+  uploadProposalFiles,
+  versionStoragePath,
+} from '@/lib/utils';
 
 const libreConvertAsync = promisify(libreConvert.convert);
 
 export const runtime = 'nodejs'; // Required for fs
+
+// A freshly generated proposal is always its own first version.
+const INITIAL_VERSION_NO = 1;
 
 export async function POST(request: Request) {
   try {
@@ -50,7 +60,7 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
     
-    const { clientInfo, projectInfo, services, pricing, signature, images: imageMetadata, terms } = data;
+    const { clientInfo, projectInfo, services, pricing, signature, images: imageMetadata, terms, offerMeta } = data;
     
     if (!clientInfo) {
       return NextResponse.json({ success: false, error: 'Missing client information' }, { status: 400 });
@@ -160,8 +170,14 @@ export async function POST(request: Request) {
     }
     console.log('✅ Files generated in memory');
 
-    // Upload DOCX + PDF to Supabase Storage
-    const storageFolderPath = `${clientFolderName}/${generatedOfferNumber}`;
+    // Upload DOCX + PDF to Supabase Storage, under this version's own folder.
+    // uploadProposalFiles writes with upsert:true, so a shared path would let a
+    // later regeneration overwrite the document an earlier version points at.
+    const storageFolderPath = versionStoragePath(
+      clientFolderName,
+      generatedOfferNumber,
+      INITIAL_VERSION_NO
+    );
     let fileUrls: { docxUrl: string; pdfUrl: string; storagePath: string } | null = null;
     try {
       fileUrls = await uploadProposalFiles(docxBuffer, pdfBuffer, storageFolderPath);
@@ -171,6 +187,7 @@ export async function POST(request: Request) {
     }
 
     // Save to DB
+    const isReady = Boolean(offerMeta?.isReady);
     const proposalDbData = {
       client_id: dbClientData ? (parseInt(dbClientData.client_id) || null) : null,
       company_name: clientInfo.companyName,
@@ -199,12 +216,40 @@ export async function POST(request: Request) {
       currency: 'EUR',
       total_price: parseFloat(pricing.totalGrossPrice?.replace(/[^0-9.,]/g, '').replace('.', '').replace(',', '.')) || null,
       image_urls: imageMetadata?.map((img: any) => ({ title: img.title, description: img.description })) || [],
-      document_url: fileUrls ? { docx: fileUrls.docxUrl, pdf: fileUrls.pdfUrl, folder: fileUrls.storagePath } : null
+      document_url: fileUrls ? { docx: fileUrls.docxUrl, pdf: fileUrls.pdfUrl, folder: fileUrls.storagePath } : null,
+
+      // The column was never written here, so every generated proposal landed
+      // with proposal_status NULL and the list rendered its "draft" fallback —
+      // including proposals that had already been marked ready.
+      //
+      // A new proposal has no row for /api/projects to update, so if the project
+      // was created during this session the readiness has to be recorded now.
+      // project_id is what makes that durable: a proposal carrying one is a
+      // proposal that has become a project.
+      proposal_status: isReady ? 'ready' : 'draft',
+      project_id: isReady ? (projectInfo.projectNumber || null) : null
     };
 
     let dbSaveError: string | null = null;
+    let savedProposal: any = null;
     try {
-      await save_proposal_detail(proposalDbData);
+      const saved = await save_proposal_detail(proposalDbData);
+      savedProposal = (saved && saved[0]) || null;
+
+      // v1 — the proposal as it was first generated. Recorded after the insert
+      // so the snapshot is of committed state, and non-fatal: the document is
+      // already in the user's hands, and losing the history entry must not read
+      // to them as a failed generation.
+      if (savedProposal) {
+        try {
+          await createProposalVersion(savedProposal, {
+            changeType: 'create',
+            actor: offerMeta?.salespersonName || null,
+          });
+        } catch (versionError: any) {
+          console.error('⚠️  Proposal saved but v1 not recorded:', versionError.message);
+        }
+      }
     } catch (dbError: any) {
       dbSaveError = dbError.message;
       console.error('⚠️  DB save failed (proposal still returned to user):', dbError.message);

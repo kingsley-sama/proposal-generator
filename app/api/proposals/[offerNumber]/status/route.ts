@@ -4,7 +4,20 @@ import { setProposalStatus, getProposalByOfferNumber } from '@/lib/utils';
 
 export const runtime = 'nodejs';
 
-const ALLOWED_STATUSES = new Set(['draft', 'ready', 'sent', 'viewed', 'accepted', 'rejected']);
+// Kept in lockstep with proposals_proposal_status_check (see
+// docs/sql/add_proposal_versions.sql). The two lists disagreed before: this
+// one allowed 'ready' where the constraint did not, so the write the Setup
+// form needed most would have failed at the database, and 'expired' was
+// rejected here despite being legal there.
+const ALLOWED_STATUSES = new Set([
+  'draft',
+  'ready',
+  'sent',
+  'viewed',
+  'accepted',
+  'rejected',
+  'expired',
+]);
 
 type RouteCtx = { params: Promise<{ offerNumber: string }> };
 

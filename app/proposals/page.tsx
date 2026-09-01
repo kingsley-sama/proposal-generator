@@ -53,6 +53,26 @@ interface ProposalDetail extends ProposalRow {
   document_url: { docx?: string; pdf?: string; folder?: string } | null;
 }
 
+interface ProposalVersion {
+  id: number;
+  version_no: number;
+  change_type: 'create' | 'regenerate' | 'ready';
+  project_id: string | null;
+  proposal_status: string | null;
+  total_price: number | null;
+  document_url: { docx?: string; pdf?: string; folder?: string } | null;
+  created_by: string | null;
+  created_at: string | null;
+}
+
+// What caused a version to be cut. 'ready' is the one that matters: it is the
+// moment the project was created, and the only kind that carries a project_id.
+const CHANGE_TYPE_LABELS: Record<string, string> = {
+  create: 'Created',
+  regenerate: 'Document updated',
+  ready: 'Marked ready',
+};
+
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
   { value: 'draft', label: 'Draft' },
@@ -307,6 +327,7 @@ function ProposalModal({
   onClose: () => void;
 }) {
   const [data, setData] = useState<ProposalDetail | null>(null);
+  const [versions, setVersions] = useState<ProposalVersion[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -316,10 +337,19 @@ function ProposalModal({
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/proposals/${encodeURIComponent(offerNumber)}`);
+        // The history is supplementary: a proposal that fails to load is an
+        // error, a history that does not is just an empty panel.
+        const [res, versionsRes] = await Promise.all([
+          fetch(`/api/proposals/${encodeURIComponent(offerNumber)}`),
+          fetch(`/api/proposals/${encodeURIComponent(offerNumber)}/versions`).catch(() => null),
+        ]);
         const json = await res.json();
         if (!json.success) throw new Error(json.error || 'Failed to load proposal');
-        if (!cancelled) setData(json.proposal);
+        if (cancelled) return;
+        setData(json.proposal);
+
+        const versionsJson = versionsRes ? await versionsRes.json().catch(() => null) : null;
+        if (!cancelled) setVersions(versionsJson?.success ? versionsJson.versions : []);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : String(e));
       } finally {
@@ -510,6 +540,79 @@ function ProposalModal({
                 ) : (
                   <div className="text-sm text-gray-500 italic">
                     No generated documents linked.
+                  </div>
+                )}
+              </Section>
+
+              {/* Version history */}
+              <Section title={`Version history (${versions.length})`}>
+                {versions.length > 0 ? (
+                  <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-600">Version</th>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-600">Event</th>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-600">Project</th>
+                          <th className="px-3 py-2 text-right font-semibold text-gray-600">Total</th>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-600">When</th>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-600">Files</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {versions.map((v) => (
+                          <tr key={v.id}>
+                            <td className="px-3 py-2 font-mono text-xs text-gray-800">v{v.version_no}</td>
+                            <td className="px-3 py-2 text-gray-700">
+                              {CHANGE_TYPE_LABELS[v.change_type] || v.change_type}
+                              {v.created_by ? (
+                                <span className="text-gray-400"> · {v.created_by}</span>
+                              ) : null}
+                            </td>
+                            <td className="px-3 py-2 font-mono text-xs text-gray-700">
+                              {v.project_id || '—'}
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums text-gray-700">
+                              {formatMoney(v.total_price, data.currency)}
+                            </td>
+                            <td className="px-3 py-2 text-xs text-gray-500 whitespace-nowrap">
+                              {formatDate(v.created_at)}
+                            </td>
+                            <td className="px-3 py-2 whitespace-nowrap">
+                              <div className="flex items-center gap-3 text-xs">
+                                {v.document_url?.pdf && (
+                                  <a
+                                    href={v.document_url.pdf}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-blue-700 underline underline-offset-2 hover:text-blue-900"
+                                  >
+                                    PDF
+                                  </a>
+                                )}
+                                {v.document_url?.docx && (
+                                  <a
+                                    href={v.document_url.docx}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-blue-700 underline underline-offset-2 hover:text-blue-900"
+                                  >
+                                    DOCX
+                                  </a>
+                                )}
+                                {!v.document_url?.pdf && !v.document_url?.docx && (
+                                  <span className="text-gray-400">—</span>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500 italic">
+                    No versions recorded yet.
                   </div>
                 )}
               </Section>
