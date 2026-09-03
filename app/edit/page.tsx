@@ -1547,7 +1547,7 @@ export default function PreviewPage() {
       <div className="pt-24 pb-16 px-0 w-[210mm] max-w-full">
         {/* Extra-information form. Only shown when an already-saved proposal is
             being edited; a brand-new proposal goes straight to the document. */}
-        {isExistingProposal && <SetupForm />}
+        {isExistingProposal && <SetupForm offerNumber={offerNumber} />}
         <div className="text-xs text-gray-600 italic mb-4 text-center">
           💡 Klicken Sie auf einen Text, um ihn zu bearbeiten. Änderungen werden automatisch gespeichert.
         </div>

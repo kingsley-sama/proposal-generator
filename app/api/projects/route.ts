@@ -104,6 +104,33 @@ export async function POST(request: Request) {
       );
     }
 
+    // The proposal this handover belongs to is resolved *before* anything is
+    // written. Marking ready is only reachable from the editor of an already
+    // saved proposal, so a missing or unknown offer number is a bug, not a
+    // variant of the flow — and failing here leaves nothing half-done, whereas
+    // discovering it after upsertProject would leave a live project row whose
+    // proposal is still a draft.
+    const offerNumber = (body?.offerNumber || '').toString().trim();
+    if (!offerNumber) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Angebotsnummer fehlt — das Projekt kann keinem Angebot zugeordnet werden. ' +
+            'Bitte das Angebot neu laden und erneut versuchen.',
+        },
+        { status: 400 }
+      );
+    }
+
+    const existingProposal = await getProposalByOfferNumber(offerNumber);
+    if (!existingProposal) {
+      return NextResponse.json(
+        { success: false, error: `Angebot ${offerNumber} wurde nicht gefunden.` },
+        { status: 404 }
+      );
+    }
+
     const rawClientId = (clientInfo.clientNumber ?? '').toString().trim();
     const clientId = /^\d+$/.test(rawClientId) ? parseInt(rawClientId, 10) : null;
     const companyEmail = (clientInfo.contactPersonEmail || '').trim().toLowerCase() || null;
@@ -171,60 +198,47 @@ export async function POST(request: Request) {
     // has to record it — both the status the list reads and the project_id that
     // ties the two together. Without this the transition lived only in React
     // state and the list went on showing "draft" forever.
-    //
-    // A brand-new proposal has no row yet (it is inserted by
-    // /api/generate-proposal), so there is nothing to update here; that path
-    // writes 'ready' at insert time from offerMeta.isReady instead.
     let proposal: any = null;
     let version: any = null;
     let proposalWarning: string | null = null;
 
-    const offerNumber = (body?.offerNumber || '').toString().trim();
-    if (offerNumber) {
-      try {
-        const existing = await getProposalByOfferNumber(offerNumber);
-        if (!existing) {
-          proposalWarning =
-            `Angebot ${offerNumber} wurde nicht gefunden — der Status konnte nicht auf "bereit" gesetzt werden.`;
-        } else {
-          // Null-valued keys are dropped for the same reason upsertProject drops
-          // them: an optional field left blank on the Setup form must not blank
-          // out what is already stored on the proposal.
-          const patch: Record<string, any> = {
-            proposal_status: 'ready',
-            project_id: projectId,
-            project_number: projectId,
-            project_manager: projectManager,
-            project_name: project.project_name,
-            pm_type: project.pm_type,
-            sales_person: project.sales_person,
-            construction_type: project.construction_type,
-            property_type: project.property_type,
-            email_id: emailId,
-            company_email: companyEmail,
-            client_contact_name: project.client_contact_name,
-          };
-          Object.keys(patch).forEach((k) => {
-            if (patch[k] === null || patch[k] === undefined || patch[k] === '') delete patch[k];
-          });
+    try {
+      // Null-valued keys are dropped for the same reason upsertProject drops
+      // them: an optional field left blank on the Setup form must not blank out
+      // what is already stored on the proposal.
+      const patch: Record<string, any> = {
+        proposal_status: 'ready',
+        project_id: projectId,
+        project_number: projectId,
+        project_manager: projectManager,
+        project_name: project.project_name,
+        pm_type: project.pm_type,
+        sales_person: project.sales_person,
+        construction_type: project.construction_type,
+        property_type: project.property_type,
+        email_id: emailId,
+        company_email: companyEmail,
+        client_contact_name: project.client_contact_name,
+      };
+      Object.keys(patch).forEach((k) => {
+        if (patch[k] === null || patch[k] === undefined || patch[k] === '') delete patch[k];
+      });
 
-          proposal = await updateProposal(offerNumber, patch);
+      proposal = await updateProposal(offerNumber, patch);
 
-          // The version carrying a project_id is the ready one — that is what
-          // separates it from every draft snapshot cut before it.
-          version = await createProposalVersion(proposal, {
-            changeType: 'ready',
-            actor: project.sales_person || null,
-          });
-        }
-      } catch (e: any) {
-        // The project itself is saved either way. Swallowing this would tell
-        // Lidia the proposal is ready while the list still says draft, so it is
-        // reported alongside the success rather than thrown.
-        console.error('⚠️  Project saved but proposal not marked ready:', e.message);
-        proposalWarning =
-          `Projekt gespeichert, aber das Angebot konnte nicht als bereit markiert werden: ${e.message}`;
-      }
+      // The version carrying a project_id is the ready one — that is what
+      // separates it from every draft snapshot cut before it.
+      version = await createProposalVersion(proposal, {
+        changeType: 'ready',
+        actor: project.sales_person || null,
+      });
+    } catch (e: any) {
+      // The project is saved at this point, so this cannot throw — that would
+      // report total failure for a project that exists. It is surfaced instead,
+      // and the client leaves the badge on "Entwurf" when it is set.
+      console.error('⚠️  Project saved but proposal not marked ready:', e.message);
+      proposalWarning =
+        `Projekt gespeichert, aber das Angebot konnte nicht als bereit markiert werden: ${e.message}`;
     }
 
     return NextResponse.json({

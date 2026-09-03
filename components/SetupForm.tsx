@@ -16,7 +16,7 @@ import {
  * document). Binds to ProposalContext, validates all required fields, and marks
  * the proposal ready — which is what enables document generation.
  */
-export default function SetupForm() {
+export default function SetupForm({ offerNumber }: { offerNumber?: string }) {
   const { showNotification } = useNotification();
   const {
     state,
@@ -137,7 +137,11 @@ export default function SetupForm() {
           clientInfo,
           projectInfo,
           offerMeta,
-          offerNumber: state.rawProposalData?.offerNumber || '',
+          // Prefer the number the editor is actually displaying. rawProposalData
+          // is a storage-backed copy that can be missing — and an empty value
+          // here used to make the server skip the proposal update silently,
+          // leaving a "ready" badge above a row still stored as a draft.
+          offerNumber: offerNumber || state.rawProposalData?.offerNumber || '',
         }),
       });
       const json = await res.json();
