@@ -87,6 +87,8 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
       total_price: moneyToNumber(pricing.totalGrossPrice),
       delivery_time_min: delivery.deliveryDaysMin || null,
       delivery_time_max: delivery.deliveryDaysMax || null,
+      raw_payload: body,
+      payload_version: '1',
     };
 
     // The Setup form's fields live in ProposalContext, not in the rendered
@@ -98,8 +100,15 @@ export async function PATCH(request: Request, ctx: RouteCtx) {
       project_number: projectInfo?.projectNumber,
       project_name: projectInfo?.projectName,
       project_type: projectInfo?.projectType,
+      custom_project_type: projectInfo?.customProjectType,
+      project_manager: projectInfo?.projectManagerName,
+      pm_type: projectInfo?.projectManagerType,
+      construction_type: projectInfo?.constructionType,
+      property_type: projectInfo?.propertyType,
       offer_valid_until: projectInfo?.offerValidUntil,
       sales_person: offerMeta?.salespersonName,
+      company_email: clientInfo.contactPersonEmail,
+      client_contact_name: clientInfo.contactPersonName,
     };
     Object.entries(setupPatch).forEach(([key, value]) => {
       if (value !== null && value !== undefined && value !== '') patch[key] = value;

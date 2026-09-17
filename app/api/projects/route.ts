@@ -181,64 +181,92 @@ export async function POST(request: Request) {
       partial_invoice: toPartialInvoice(offerMeta.partialInvoice),
     };
 
+    // Commit the lifecycle transition on the proposal before creating the
+    // project. The proposal list reads this row, so returning success while
+    // this update failed leaves the UI and database disagreeing.
+    const previousProposalFields = {
+      proposal_status: existingProposal.proposal_status,
+      project_id: existingProposal.project_id,
+      project_number: existingProposal.project_number,
+      project_manager: existingProposal.project_manager,
+      project_name: existingProposal.project_name,
+      pm_type: existingProposal.pm_type,
+      sales_person: existingProposal.sales_person,
+      construction_type: existingProposal.construction_type,
+      property_type: existingProposal.property_type,
+      email_id: existingProposal.email_id,
+      company_email: existingProposal.company_email,
+      client_contact_name: existingProposal.client_contact_name,
+    };
+    const proposalPatch: Record<string, any> = {
+      proposal_status: 'ready',
+      project_id: projectId,
+      project_number: projectId,
+      project_manager: projectManager,
+      project_name: project.project_name,
+      pm_type: project.pm_type,
+      sales_person: project.sales_person,
+      construction_type: project.construction_type,
+      property_type: project.property_type,
+      email_id: emailId,
+      company_email: companyEmail,
+      client_contact_name: project.client_contact_name,
+    };
+    Object.keys(proposalPatch).forEach((key) => {
+      if (proposalPatch[key] === null || proposalPatch[key] === undefined || proposalPatch[key] === '') {
+        delete proposalPatch[key];
+      }
+    });
+
+    let proposal: any;
+    try {
+      proposal = await updateProposal(offerNumber, proposalPatch);
+    } catch (error: any) {
+      console.error('❌ Proposal could not be marked ready:', error);
+      return NextResponse.json(
+        { success: false, error: `Angebot konnte nicht als bereit markiert werden: ${error.message}` },
+        { status: 500 }
+      );
+    }
+
     // Seeded on creation only: a project that has moved past "Offen" must not
     // be dragged back when its proposal is edited and re-marked ready.
-    const { project: saved, created } = await upsertProject(project, {
-      project_status: DEFAULT_PROJECT_STATUS,
-      // Creation-only: the Setup form no longer asks about the questionnaire, so
-      // every new project starts as 'No' ("handed over, questionnaire pending")
-      // and the PM flips it to 'Yes' in the dashboard. Keeping it out of the
-      // update payload means re-marking a proposal ready can never drag a
-      // confirmed 'Yes' back and re-arm the intake trigger behind the PM's back.
-      questionnaire_received: DEFAULT_QUESTIONNAIRE_RECEIVED,
-    });
+    let saved: any;
+    let created = false;
+    try {
+      ({ project: saved, created } = await upsertProject(project, {
+        project_status: DEFAULT_PROJECT_STATUS,
+        // Creation-only: the Setup form no longer asks about the questionnaire, so
+        // every new project starts as 'No' ("handed over, questionnaire pending")
+        // and the PM flips it to 'Yes' in the dashboard. Keeping it out of the
+        // update payload means re-marking a proposal ready can never drag a
+        // confirmed 'Yes' back and re-arm the intake trigger behind the PM's back.
+        questionnaire_received: DEFAULT_QUESTIONNAIRE_RECEIVED,
+      }));
+    } catch (error: any) {
+      try {
+        await updateProposal(offerNumber, previousProposalFields);
+      } catch (rollbackError: any) {
+        console.error('❌ Failed to roll back proposal readiness:', rollbackError);
+      }
+      throw error;
+    }
 
     // ── Mirror the transition onto the proposal ─────────────────────────────
     // Creating the project is what makes a proposal "ready", so the proposal row
     // has to record it — both the status the list reads and the project_id that
     // ties the two together. Without this the transition lived only in React
     // state and the list went on showing "draft" forever.
-    let proposal: any = null;
     let version: any = null;
-    let proposalWarning: string | null = null;
-
+    // The version carrying a project_id is the ready one — that is what
+    // separates it from every draft snapshot cut before it.
     try {
-      // Null-valued keys are dropped for the same reason upsertProject drops
-      // them: an optional field left blank on the Setup form must not blank out
-      // what is already stored on the proposal.
-      const patch: Record<string, any> = {
-        proposal_status: 'ready',
-        project_id: projectId,
-        project_number: projectId,
-        project_manager: projectManager,
-        project_name: project.project_name,
-        pm_type: project.pm_type,
-        sales_person: project.sales_person,
-        construction_type: project.construction_type,
-        property_type: project.property_type,
-        email_id: emailId,
-        company_email: companyEmail,
-        client_contact_name: project.client_contact_name,
-      };
-      Object.keys(patch).forEach((k) => {
-        if (patch[k] === null || patch[k] === undefined || patch[k] === '') delete patch[k];
-      });
-
-      proposal = await updateProposal(offerNumber, patch);
-
-      // The version carrying a project_id is the ready one — that is what
-      // separates it from every draft snapshot cut before it.
       version = await createProposalVersion(proposal, {
         changeType: 'ready',
         actor: project.sales_person || null,
       });
     } catch (e: any) {
-      // The project is saved at this point, so this cannot throw — that would
-      // report total failure for a project that exists. It is surfaced instead,
-      // and the client leaves the badge on "Entwurf" when it is set.
-      console.error('⚠️  Project saved but proposal not marked ready:', e.message);
-      proposalWarning =
-        `Projekt gespeichert, aber das Angebot konnte nicht als bereit markiert werden: ${e.message}`;
+      console.error('⚠️  Proposal marked ready but version not recorded:', e.message);
     }
 
     return NextResponse.json({
@@ -249,7 +277,6 @@ export async function POST(request: Request) {
       linkedEmail,
       proposal,
       version,
-      proposalWarning,
     });
   } catch (error: any) {
     console.error('❌ Error creating project:', error);

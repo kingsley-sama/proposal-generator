@@ -33,6 +33,7 @@ export default function EditProposalLoader() {
         if (cancelled) return;
 
         const p = json.proposal;
+        const savedProjectInfo = p.raw_payload?.projectInfo || {};
         const ready = (p.proposal_status || 'draft').toLowerCase() !== 'draft';
 
         // Hydrate context so the Setup form shows the saved values too.
@@ -48,13 +49,28 @@ export default function EditProposalLoader() {
           projectNumber: p.project_number || '',
           projectName: p.project_name || '',
           projectType: p.project_type || '',
+          customProjectType: p.custom_project_type || '',
+          propertyType: p.property_type || '',
+          projectManagerName: p.project_manager || '',
+          projectManagerType: p.pm_type || '',
+          projectCategory: p.project_category || savedProjectInfo.projectCategory || '',
+          constructionType: p.construction_type || savedProjectInfo.constructionType || '',
+          orderConfirmationDate: p.order_confirmation_date || savedProjectInfo.orderConfirmationDate || '',
           offerValidUntil: p.offer_valid_until || '',
           deliveryTime:
             p.delivery_time_min && p.delivery_time_max
               ? `${p.delivery_time_min}-${p.delivery_time_max}`
               : '',
         });
-        updateOfferMeta({ isReady: ready });
+        updateOfferMeta({
+          isReady: ready,
+          salespersonName: p.sales_person || '',
+          partialInvoice: {
+            answered: p.partial_invoice != null,
+            enabled: p.partial_invoice != null && p.partial_invoice !== 'no',
+            invoiceNumber: p.partial_invoice && p.partial_invoice !== 'no' ? p.partial_invoice : '',
+          },
+        });
 
         // Build the raw payload the editor renders. `offerNumber` is carried
         // through so the editor shows the number of the proposal being edited

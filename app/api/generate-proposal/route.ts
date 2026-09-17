@@ -198,6 +198,16 @@ export async function POST(request: Request) {
       project_number: projectInfo.projectNumber || null,
       project_name: projectInfo.projectName || null,
       project_type: projectInfo.projectType || null,
+      custom_project_type: projectInfo.customProjectType || null,
+      project_manager: projectInfo.projectManagerName || null,
+      pm_type: projectInfo.projectManagerType || null,
+      sales_person: offerMeta?.salespersonName || null,
+      company_email: clientInfo.contactPersonEmail || null,
+      client_contact_name: clientInfo.contactPersonName || null,
+      construction_type: projectInfo.constructionType || null,
+      property_type: projectInfo.propertyType || null,
+      offer_valid_until: projectInfo.offerValidUntil || null,
+      delivery_time_text: projectInfo.deliveryTime || null,
       offer_number: generatedOfferNumber,
       delivery_time_min: projectInfo.deliveryDays ? parseInt(projectInfo.deliveryDays.split('-')[0]) : null,
       delivery_time_max: projectInfo.deliveryDays ? parseInt(projectInfo.deliveryDays.split('-')[1]) : null,
@@ -227,7 +237,9 @@ export async function POST(request: Request) {
       // project_id is what makes that durable: a proposal carrying one is a
       // proposal that has become a project.
       proposal_status: isReady ? 'ready' : 'draft',
-      project_id: isReady ? (projectInfo.projectNumber || null) : null
+      project_id: isReady ? (projectInfo.projectNumber || null) : null,
+      raw_payload: data,
+      payload_version: '1'
     };
 
     let dbSaveError: string | null = null;
