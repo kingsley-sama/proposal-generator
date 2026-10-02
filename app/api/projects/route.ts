@@ -73,6 +73,44 @@ const toDate = (value: string | undefined, field: string): string | null => {
   return trimmed;
 };
 
+// Production webhook of the n8n workflow "Project Creation Notification teams
+// channel" (djgCWbctRdXkubgB). Not a secret — the webhook takes no credentials;
+// the Teams team/channel IDs and the Graph login live in the workflow itself.
+// The workflow must stay active for this URL to be registered.
+const PROJECT_CREATED_WEBHOOK_URL =
+  'https://n8n.exposeprofi.de/webhook/teams-channel-structured-data';
+
+/**
+ * Posts the new project to the n8n "Project Creation Notification teams
+ * channel" workflow, which renders every key of the body as a
+ * "<b>key:</b> value" line in the PM channel — so keys are written as the
+ * labels the team should read.
+ *
+ * The project already exists by the time this runs, so a failed notification
+ * is logged and swallowed rather than failing the request. Awaited (with a
+ * timeout) because a serverless runtime may kill an un-awaited fetch.
+ */
+async function notifyProjectCreated(fields: Record<string, unknown>) {
+  const body: Record<string, unknown> = {};
+  Object.entries(fields).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== '') body[key] = value;
+  });
+
+  try {
+    const response = await fetch(PROJECT_CREATED_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!response.ok) {
+      console.error('⚠️  Project-created webhook returned non-OK status:', response.status);
+    }
+  } catch (error: any) {
+    console.error('⚠️  Project-created webhook failed:', error.message);
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -267,6 +305,29 @@ export async function POST(request: Request) {
       });
     } catch (e: any) {
       console.error('⚠️  Proposal marked ready but version not recorded:', e.message);
+    }
+
+    // Only a newly inserted row is announced: re-marking a proposal ready
+    // updates the existing project and must not post a duplicate to Teams.
+    if (created) {
+      await notifyProjectCreated({
+        'New project': project.project_id,
+        'Project name': project.project_name,
+        Company: existingProposal.company_name,
+        'Offer number': offerNumber,
+        'Project manager': project.project_manager,
+        'PM type': project.pm_type,
+        'Project type': project.project_type,
+        'Construction type': project.construction_type,
+        'Property type': project.property_type,
+        'Order confirmation date': project.order_confirmation_date,
+        'Sales person': project.sales_person,
+        'Client ID': project.client_id,
+        'Contact person': project.client_contact_name,
+        Email: project.company_email,
+        'Partial invoice': project.partial_invoice,
+        'Total price (net)': existingProposal.total_price,
+      });
     }
 
     return NextResponse.json({
