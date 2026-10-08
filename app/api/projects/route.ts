@@ -15,6 +15,7 @@ import {
   type ProjectStatus,
   type YesNo,
 } from '@/lib/project-enums';
+import { N8N_WEBHOOKS } from '@/lib/n8n-webhooks';
 
 export const runtime = 'nodejs';
 
@@ -73,13 +74,6 @@ const toDate = (value: string | undefined, field: string): string | null => {
   return trimmed;
 };
 
-// Production webhook of the n8n workflow "Project Creation Notification teams
-// channel" (djgCWbctRdXkubgB). Not a secret — the webhook takes no credentials;
-// the Teams team/channel IDs and the Graph login live in the workflow itself.
-// The workflow must stay active for this URL to be registered.
-const PROJECT_CREATED_WEBHOOK_URL =
-  'https://n8n.exposeprofi.de/webhook/teams-channel-structured-data';
-
 /**
  * Posts the new project to the n8n "Project Creation Notification teams
  * channel" workflow, which renders every key of the body as a
@@ -97,7 +91,7 @@ async function notifyProjectCreated(fields: Record<string, unknown>) {
   });
 
   try {
-    const response = await fetch(PROJECT_CREATED_WEBHOOK_URL, {
+    const response = await fetch(N8N_WEBHOOKS.projectCreated, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

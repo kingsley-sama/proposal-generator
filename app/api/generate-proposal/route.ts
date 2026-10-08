@@ -13,6 +13,7 @@ import {
   uploadProposalFiles,
   versionStoragePath,
 } from '@/lib/utils';
+import { N8N_WEBHOOKS } from '@/lib/n8n-webhooks';
 
 const libreConvertAsync = promisify(libreConvert.convert);
 
@@ -301,8 +302,7 @@ export async function POST(request: Request) {
             docxUrl: fileUrls?.docxUrl || null,
             pdfUrl:  fileUrls?.pdfUrl  || null,
         };
-        const webhookUrl = 'https://n8n.exposeprofi.de/webhook/556fd7ca-ef28-4d00-b98e-9271b07a7bad';
-        const webhookResponse = await fetch(webhookUrl, {
+        const webhookResponse = await fetch(N8N_WEBHOOKS.proposalUpload, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(webhookPayload),
