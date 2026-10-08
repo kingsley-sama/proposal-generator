@@ -36,6 +36,28 @@ export default function EditProposalLoader() {
         const savedProjectInfo = p.raw_payload?.projectInfo || {};
         const ready = (p.proposal_status || 'draft').toLowerCase() !== 'draft';
 
+        // The contact person is always set explicitly — even to '' — because the
+        // context is persisted in localStorage: a field left out here keeps
+        // whatever the previous proposal (or the signed-in user) typed. Saved
+        // values win; anything missing comes from the company's contact in
+        // companies → emails → person_emails → persons, looked up by the saved
+        // address so the name and email belong to the same person.
+        let contactPersonName: string = p.client_contact_name || '';
+        let contactPersonEmail: string = p.company_email || '';
+        const lookupKey = contactPersonEmail || (p.client_id != null ? String(p.client_id) : '');
+        if ((!contactPersonName || !contactPersonEmail) && lookupKey) {
+          try {
+            const lookup = await fetch(`/api/client-lookup/${encodeURIComponent(lookupKey)}`).then((r) => r.json());
+            if (lookup?.success && lookup.data) {
+              contactPersonName = contactPersonName || lookup.data.contact_name || '';
+              contactPersonEmail = contactPersonEmail || lookup.data.contact_email || '';
+            }
+          } catch {
+            // Non-fatal: the Setup form shows the fields empty for manual entry.
+          }
+          if (cancelled) return;
+        }
+
         // Hydrate context so the Setup form shows the saved values too.
         updateClientInfo({
           clientNumber: p.client_id != null ? String(p.client_id) : '',
@@ -44,6 +66,8 @@ export default function EditProposalLoader() {
           postalCode: p.postal_code || '',
           city: p.city || '',
           country: p.country || 'Deutschland',
+          contactPersonName,
+          contactPersonEmail,
         });
         updateProjectInfo({
           projectNumber: p.project_number || '',
@@ -83,6 +107,8 @@ export default function EditProposalLoader() {
             postalCode: p.postal_code || '',
             city: p.city || '',
             country: p.country || 'Deutschland',
+            contactPersonName,
+            contactPersonEmail,
           },
           projectInfo: {
             projectNumber: p.project_number || '',

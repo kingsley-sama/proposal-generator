@@ -87,13 +87,17 @@ export default function SetupForm({ offerNumber }: { offerNumber?: string }) {
       const json = await res.json();
       if (json?.success && json.data) {
         const c = json.data;
+        // The contact belongs to the company: what was typed for a different
+        // company (or left over from an earlier proposal) must not carry over,
+        // so it is only kept when the lookup has no contact for the same company.
+        const sameCompany = !!c.company_name && c.company_name === clientInfo.companyName;
         updateClientInfo({
           companyName: c.company_name || clientInfo.companyName,
           street: c.street_no || c.street || clientInfo.street,
           postalCode: c.postal_code || clientInfo.postalCode,
           city: c.city || clientInfo.city,
-          contactPersonName: c.contact_name || clientInfo.contactPersonName,
-          contactPersonEmail: c.contact_email || clientInfo.contactPersonEmail,
+          contactPersonName: c.contact_name || (sameCompany ? clientInfo.contactPersonName : ''),
+          contactPersonEmail: c.contact_email || (sameCompany ? clientInfo.contactPersonEmail : ''),
         });
         showNotification(`✓ ${c.company_name || 'Kunde gefunden'}`, 'success');
       } else {
